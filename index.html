@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AZ Stocks</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app">
+    <header class="topo">
+      <div class="marca">
+        <div class="logo">AZ</div>
+        <div>
+          <p class="etiqueta">Painel de decisão</p>
+          <h1>AZ Stocks</h1>
+          <p class="subtitulo">Comprar, vender parcial ou apenas acompanhar.</p>
+        </div>
+      </div>
+
+      <div class="acoes-topo">
+        <span id="ultimaAtualizacao">Atualizado agora</span>
+        <button id="botaoAtualizar">Atualizar preços EUA</button>
+      </div>
+    </header>
+
+    <section class="cartoes">
+      <article class="cartao compra">
+        <div>
+          <p>Comprar</p>
+          <span>Oportunidades</span>
+        </div>
+        <strong id="totalComprar">0</strong>
+      </article>
+
+      <article class="cartao venda">
+        <div>
+          <p>Venda parcial</p>
+          <span>Realização</span>
+        </div>
+        <strong id="totalVender">0</strong>
+      </article>
+
+      <article class="cartao atencao">
+        <div>
+          <p>Atenção</p>
+          <span>Revisar tese</span>
+        </div>
+        <strong id="totalAtencao">0</strong>
+      </article>
+
+      <article class="cartao neutra">
+        <div>
+          <p>Neutras</p>
+          <span>Acompanhar</span>
+        </div>
+        <strong id="totalNeutras">0</strong>
+      </article>
+    </section>
+
+    <section class="painel">
+      <div class="barra-filtros">
+        <div>
+          <label for="filtroPlataforma">Plataforma</label>
+          <select id="filtroPlataforma">
+            <option value="Todas">Todas</option>
+            <option value="Nomad">Nomad</option>
+            <option value="Avenue">Avenue</option>
+            <option value="Nubank">Nubank</option>
+            <option value="Inter">Inter</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="filtroSituacao">Situação</label>
+          <select id="filtroSituacao">
+            <option value="Todas">Todas</option>
+            <option value="Comprar">Comprar</option>
+            <option value="Venda parcial">Venda parcial</option>
+            <option value="Atenção">Atenção</option>
+            <option value="Neutra">Neutra</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="tabela-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Plataforma</th>
+              <th>Quantidade</th>
+              <th>Preço médio</th>
+              <th>Valor atual</th>
+              <th>Rentabilidade</th>
+              <th>Situação</th>
+            </tr>
+          </thead>
+          <tbody id="corpoTabela"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <p class="observacao" id="mensagemAtualizacao">Versão v8: preparada para GitHub Pages, com tempo limite por ativo e controle de erro.</p>
+  </main>
+
+  <script src="carteira.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
