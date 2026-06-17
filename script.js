@@ -19,8 +19,6 @@ function formatarMoeda(valor, ativo) {
 }
 
 function formatarMoedaResumo(valor) {
-  // O resumo mistura Brasil e EUA apenas para visão gerencial simples.
-  // Para evitar conversão cambial falsa, usamos "US$" como unidade visual base do painel.
   return Number(valor).toLocaleString("pt-BR", {
     style: "currency",
     currency: "USD"
@@ -42,14 +40,17 @@ function numero(valor) {
   if (typeof valor === "number") return valor;
   if (valor === null || valor === undefined) return 0;
 
-  const txt = String(valor)
-    .replace("R$", "")
-    .replace("US$", "")
-    .replace(/\s/g, "")
-    .replace(/\./g, "")
-    .replace(",", ".");
+  const texto = String(valor).trim().replace("R$", "").replace("US$", "").replace(/\s/g, "");
 
-  return Number(txt) || 0;
+  if (texto.includes(",") && texto.includes(".")) {
+    return Number(texto.replace(/\./g, "").replace(",", ".")) || 0;
+  }
+
+  if (texto.includes(",")) {
+    return Number(texto.replace(",", ".")) || 0;
+  }
+
+  return Number(texto) || 0;
 }
 
 function valorInvestido(ativo) {
@@ -238,7 +239,7 @@ async function carregarGoogleSheets() {
   const json = JSON.parse(limparRespostaGoogle(await resp.text()));
   const novos = (json.table.rows || [])
     .map(mapearLinhaGoogle)
-    .filter(a => a.codigo && a.plataforma && a.pais && a.precoMedio > 0 && a.valorAtual > 0);
+    .filter(a => a.codigo && a.plataforma && a.pais && a.tipo && a.precoMedio > 0 && a.valorAtual > 0);
 
   if (!novos.length) throw new Error("A planilha não retornou ativos válidos.");
 
