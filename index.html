@@ -58,7 +58,61 @@
         <strong id="totalNeutras">0</strong>
       </article>
     </section>
-<section class="painel">
+    <section class="resumo-financeiro resumo-v13">
+      <article class="mini-card">
+        <span>EUA — Investido</span>
+        <strong id="valorInvestidoEUA">US$ 0,00</strong>
+      </article>
+      <article class="mini-card">
+        <span>EUA — Atual</span>
+        <strong id="valorAtualEUA">US$ 0,00</strong>
+      </article>
+      <article class="mini-card">
+        <span>EUA — Resultado</span>
+        <strong id="resultadoEUA">US$ 0,00</strong>
+      </article>
+      <article class="mini-card">
+        <span>EUA — Rentabilidade</span>
+        <strong id="rentabilidadeEUA">0,00%</strong>
+      </article>
+
+      <article class="mini-card mini-card-brasil">
+        <span>Brasil — Investido</span>
+        <strong id="valorInvestidoBrasil">R$ 0,00</strong>
+      </article>
+      <article class="mini-card mini-card-brasil">
+        <span>Brasil — Atual</span>
+        <strong id="valorAtualBrasil">R$ 0,00</strong>
+      </article>
+      <article class="mini-card mini-card-brasil">
+        <span>Brasil — Resultado</span>
+        <strong id="resultadoBrasil">R$ 0,00</strong>
+      </article>
+      <article class="mini-card mini-card-brasil">
+        <span>Brasil — Rentabilidade</span>
+        <strong id="rentabilidadeBrasil">0,00%</strong>
+      </article>
+    </section>
+
+    <section class="quebras-gerenciais">
+      <article>
+        <header>
+          <span>Por corretora</span>
+          <strong>Distribuição da posição</strong>
+        </header>
+        <div id="quebraCorretora" class="lista-quebras"></div>
+      </article>
+
+      <article>
+        <header>
+          <span>Por tipo</span>
+          <strong>Ação vs ETF</strong>
+        </header>
+        <div id="quebraTipo" class="lista-quebras"></div>
+      </article>
+    </section>
+
+    <section class="painel">
       <div class="barra-filtros">
         <div>
           <label for="filtroPlataforma">Plataforma</label>
@@ -107,7 +161,7 @@
       </div>
     </section>
 
-    <p class="observacao" id="mensagemAtualizacao">Versão v13b: resumo separado por moeda, corretora e tipo de ativo.</p>
+    <p class="observacao" id="mensagemAtualizacao">Versão v13c: resumo separado por moeda, corretora e tipo de ativo.</p>
   </main>
 
   <script src="config.js"></script>
