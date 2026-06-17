@@ -355,3 +355,33 @@ tbody tr:hover {
   color: #991b1b;
   font-weight: 800;
 }
+
+
+.botao-secundario {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 42px;
+  padding: 0 18px;
+  border-radius: 14px;
+  background: #fff7ed;
+  color: #9a3412;
+  border: 1px solid rgba(234, 88, 12, 0.22);
+  font-weight: 800;
+  text-decoration: none;
+  box-shadow: 0 10px 24px rgba(154, 52, 18, 0.08);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.botao-secundario:hover {
+  transform: translateY(-1px);
+  background: #ffedd5;
+  box-shadow: 0 14px 28px rgba(154, 52, 18, 0.14);
+}
+
+.acoes-topo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
