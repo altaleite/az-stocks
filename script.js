@@ -12,10 +12,7 @@ function moedaDoAtivo(ativo) {
 }
 
 function formatarMoedaPorCodigo(valor, currency) {
-  return Number(valor).toLocaleString("pt-BR", {
-    style: "currency",
-    currency
-  });
+  return Number(valor).toLocaleString("pt-BR", { style: "currency", currency });
 }
 
 function formatarMoeda(valor, ativo) {
@@ -23,10 +20,7 @@ function formatarMoeda(valor, ativo) {
 }
 
 function formatarNumero(valor) {
-  return Number(valor).toLocaleString("pt-BR", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 5
-  });
+  return Number(valor).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 5 });
 }
 
 function formatarPercentual(valor) {
@@ -68,28 +62,19 @@ function calcularRentabilidade(ativo) {
 
 function definirSituacao(ativo) {
   const r = calcularRentabilidade(ativo);
-
   if (r <= -30) return { texto: "Atenção", classe: "atencao" };
   if (r <= -numero(ativo.compra)) return { texto: "Comprar", classe: "comprar" };
   if (r >= numero(ativo.venda)) return { texto: "Venda parcial", classe: "vender" };
-
   return { texto: "Neutra", classe: "neutra" };
 }
 
 function ordemSituacao(texto) {
-  return {
-    "Comprar": 1,
-    "Venda parcial": 2,
-    "Atenção": 3,
-    "Neutra": 4
-  }[texto] || 99;
+  return { "Comprar": 1, "Venda parcial": 2, "Atenção": 3, "Neutra": 4 }[texto] || 99;
 }
 
 function enriquecerAtivos(lista) {
-  const totalCarteiraPorMoeda = {
-    USD: lista.filter(a => a.pais !== "Brasil").reduce((soma, ativo) => soma + valorPosicao(ativo), 0),
-    BRL: lista.filter(a => a.pais === "Brasil").reduce((soma, ativo) => soma + valorPosicao(ativo), 0)
-  };
+  const totalUSD = lista.filter(a => a.pais !== "Brasil").reduce((soma, a) => soma + valorPosicao(a), 0);
+  const totalBRL = lista.filter(a => a.pais === "Brasil").reduce((soma, a) => soma + valorPosicao(a), 0);
 
   return lista.map(ativo => {
     const investido = valorInvestido(ativo);
@@ -97,20 +82,10 @@ function enriquecerAtivos(lista) {
     const resultado = resultadoFinanceiro(ativo);
     const rentabilidade = calcularRentabilidade(ativo);
     const situacao = definirSituacao(ativo);
-    const moeda = moedaDoAtivo(ativo);
-    const totalMoeda = totalCarteiraPorMoeda[moeda] || 0;
+    const totalMoeda = ativo.pais === "Brasil" ? totalBRL : totalUSD;
     const peso = totalMoeda > 0 ? (posicao / totalMoeda) * 100 : 0;
 
-    return {
-      ...ativo,
-      investido,
-      posicao,
-      resultado,
-      rentabilidade,
-      situacao,
-      peso,
-      moeda
-    };
+    return { ...ativo, investido, posicao, resultado, rentabilidade, situacao, peso };
   });
 }
 
@@ -138,48 +113,37 @@ function atualizarCartoes(lista) {
   document.getElementById("totalNeutras").textContent = t.neutra;
 }
 
-function resumoPorPais(lista, pais) {
-  const filtrados = lista.filter(a => pais === "Brasil" ? a.pais === "Brasil" : a.pais !== "Brasil");
-  const enriquecidos = enriquecerAtivos(filtrados);
-  const investido = enriquecidos.reduce((soma, a) => soma + a.investido, 0);
-  const atual = enriquecidos.reduce((soma, a) => soma + a.posicao, 0);
+function resumoPorPais(lista, brasil) {
+  const filtrados = lista.filter(a => brasil ? a.pais === "Brasil" : a.pais !== "Brasil");
+  const investido = filtrados.reduce((soma, a) => soma + valorInvestido(a), 0);
+  const atual = filtrados.reduce((soma, a) => soma + valorPosicao(a), 0);
   const resultado = atual - investido;
   const rentabilidade = investido > 0 ? (resultado / investido) * 100 : 0;
-
   return { investido, atual, resultado, rentabilidade };
 }
 
-function aplicarClasseResultado(id, valor) {
+function atualizarCampo(id, valor, tipo) {
   const el = document.getElementById(id);
   if (!el) return;
-  el.className = valor >= 0 ? "positivo" : "negativo";
+  el.textContent = tipo === "%" ? formatarPercentual(valor) : formatarMoedaPorCodigo(valor, tipo);
+  if (id.includes("resultado") || id.includes("rentabilidade")) {
+    el.className = valor >= 0 ? "positivo" : "negativo";
+  }
 }
 
 function atualizarResumoFinanceiro(lista) {
-  const eua = resumoPorPais(lista, "EUA");
-  const brasil = resumoPorPais(lista, "Brasil");
+  const eua = resumoPorPais(lista, false);
+  const brasil = resumoPorPais(lista, true);
 
-  const campos = [
-    ["valorInvestidoEUA", eua.investido, "USD"],
-    ["valorAtualEUA", eua.atual, "USD"],
-    ["resultadoEUA", eua.resultado, "USD"],
-    ["rentabilidadeEUA", eua.rentabilidade, "%"],
-    ["valorInvestidoBrasil", brasil.investido, "BRL"],
-    ["valorAtualBrasil", brasil.atual, "BRL"],
-    ["resultadoBrasil", brasil.resultado, "BRL"],
-    ["rentabilidadeBrasil", brasil.rentabilidade, "%"]
-  ];
+  atualizarCampo("valorInvestidoEUA", eua.investido, "USD");
+  atualizarCampo("valorAtualEUA", eua.atual, "USD");
+  atualizarCampo("resultadoEUA", eua.resultado, "USD");
+  atualizarCampo("rentabilidadeEUA", eua.rentabilidade, "%");
 
-  campos.forEach(([id, valor, tipo]) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.textContent = tipo === "%" ? formatarPercentual(valor) : formatarMoedaPorCodigo(valor, tipo);
-  });
-
-  aplicarClasseResultado("resultadoEUA", eua.resultado);
-  aplicarClasseResultado("rentabilidadeEUA", eua.rentabilidade);
-  aplicarClasseResultado("resultadoBrasil", brasil.resultado);
-  aplicarClasseResultado("rentabilidadeBrasil", brasil.rentabilidade);
+  atualizarCampo("valorInvestidoBrasil", brasil.investido, "BRL");
+  atualizarCampo("valorAtualBrasil", brasil.atual, "BRL");
+  atualizarCampo("resultadoBrasil", brasil.resultado, "BRL");
+  atualizarCampo("rentabilidadeBrasil", brasil.rentabilidade, "%");
 
   atualizarQuebrasGerenciais(lista);
 }
@@ -190,25 +154,15 @@ function agrupar(lista, chaveFn) {
   lista.forEach(ativo => {
     const chave = chaveFn(ativo);
     if (!grupos[chave]) {
-      grupos[chave] = {
-        label: chave,
-        investidoUSD: 0,
-        atualUSD: 0,
-        investidoBRL: 0,
-        atualBRL: 0,
-        quantidade: 0
-      };
+      grupos[chave] = { label: chave, investidoUSD: 0, atualUSD: 0, investidoBRL: 0, atualBRL: 0, quantidade: 0 };
     }
 
-    const investido = valorInvestido(ativo);
-    const atual = valorPosicao(ativo);
-
     if (ativo.pais === "Brasil") {
-      grupos[chave].investidoBRL += investido;
-      grupos[chave].atualBRL += atual;
+      grupos[chave].investidoBRL += valorInvestido(ativo);
+      grupos[chave].atualBRL += valorPosicao(ativo);
     } else {
-      grupos[chave].investidoUSD += investido;
-      grupos[chave].atualUSD += atual;
+      grupos[chave].investidoUSD += valorInvestido(ativo);
+      grupos[chave].atualUSD += valorPosicao(ativo);
     }
 
     grupos[chave].quantidade += 1;
@@ -224,8 +178,8 @@ function renderizarGrupo(containerId, grupos) {
   container.innerHTML = "";
 
   grupos.forEach(g => {
-    const resultadoUSD = g.atualUSD - g.investidoUSD;
-    const resultadoBRL = g.atualBRL - g.investidoBRL;
+    const resUSD = g.atualUSD - g.investidoUSD;
+    const resBRL = g.atualBRL - g.investidoBRL;
 
     const linha = document.createElement("div");
     linha.className = "linha-quebra";
@@ -235,20 +189,22 @@ function renderizarGrupo(containerId, grupos) {
         <span>${g.quantidade} ativo${g.quantidade === 1 ? "" : "s"}</span>
       </div>
       <div class="valores-quebra">
-        <span>US$ ${g.atualUSD.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-        <small class="${resultadoUSD >= 0 ? "positivo" : "negativo"}">${resultadoUSD >= 0 ? "+" : ""}US$ ${resultadoUSD.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</small>
-        <span>R$ ${g.atualBRL.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-        <small class="${resultadoBRL >= 0 ? "positivo" : "negativo"}">${resultadoBRL >= 0 ? "+" : ""}R$ ${resultadoBRL.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</small>
+        <span>${formatarMoedaPorCodigo(g.atualUSD, "USD")}</span>
+        <small class="${resUSD >= 0 ? "positivo" : "negativo"}">${formatarMoedaPorCodigo(resUSD, "USD")}</small>
+        <span>${formatarMoedaPorCodigo(g.atualBRL, "BRL")}</span>
+        <small class="${resBRL >= 0 ? "positivo" : "negativo"}">${formatarMoedaPorCodigo(resBRL, "BRL")}</small>
       </div>
     `;
-
     container.appendChild(linha);
   });
 }
 
 function atualizarQuebrasGerenciais(lista) {
-  const porCorretora = agrupar(lista, a => a.plataforma).sort((a,b) => (b.atualUSD + b.atualBRL) - (a.atualUSD + a.atualBRL));
-  const porTipo = agrupar(lista, a => a.tipo || "Sem tipo").sort((a,b) => (b.atualUSD + b.atualBRL) - (a.atualUSD + a.atualBRL));
+  const porCorretora = agrupar(lista, a => a.plataforma)
+    .sort((a,b) => (b.atualUSD + b.atualBRL) - (a.atualUSD + a.atualBRL));
+
+  const porTipo = agrupar(lista, a => a.tipo || "Sem tipo")
+    .sort((a,b) => (b.atualUSD + b.atualBRL) - (a.atualUSD + a.atualBRL));
 
   renderizarGrupo("quebraCorretora", porCorretora);
   renderizarGrupo("quebraTipo", porTipo);
@@ -262,12 +218,10 @@ function renderizarTabela() {
     const tr = document.createElement("tr");
     const classeRentabilidade = a.rentabilidade >= 0 ? "positiva" : "negativa";
     const classeResultado = a.resultado >= 0 ? "positiva" : "negativa";
-    const tipo = a.tipo || "-";
-    const observacao = a.observacao || "";
 
     tr.innerHTML = `
       <td class="codigo">${a.codigo}</td>
-      <td><span class="tipo-ativo">${tipo}</span></td>
+      <td><span class="tipo-ativo">${a.tipo || "-"}</span></td>
       <td><span class="plataforma">${a.plataforma}</span></td>
       <td>${formatarNumero(a.quantidade)}</td>
       <td>${formatarMoeda(a.precoMedio, a)}</td>
@@ -278,7 +232,7 @@ function renderizarTabela() {
       <td class="rentabilidade ${classeRentabilidade}">${formatarPercentual(a.rentabilidade)}</td>
       <td>${formatarPercentual(a.peso)}</td>
       <td><span class="situacao ${a.situacao.classe}">${a.situacao.texto}</span></td>
-      <td class="observacao-tabela">${observacao}</td>`;
+      <td class="observacao-tabela">${a.observacao || ""}</td>`;
 
     corpoTabela.appendChild(tr);
   });
@@ -292,9 +246,7 @@ function atualizarData() {
 }
 
 function limparRespostaGoogle(texto) {
-  return texto
-    .replace(/^.*google\.visualization\.Query\.setResponse\(/s, "")
-    .replace(/\);?\s*$/s, "");
+  return texto.replace(/^.*google\.visualization\.Query\.setResponse\(/s, "").replace(/\);?\s*$/s, "");
 }
 
 function valorCelula(celula) {
@@ -326,8 +278,8 @@ async function carregarGoogleSheets() {
   if (!cfg.GOOGLE_SHEET_ID) return false;
 
   const url = `https://docs.google.com/spreadsheets/d/${cfg.GOOGLE_SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(cfg.SHEET_NAME || "Dados")}`;
-
   const resp = await fetch(url);
+
   if (!resp.ok) throw new Error("Não consegui acessar a planilha.");
 
   const json = JSON.parse(limparRespostaGoogle(await resp.text()));

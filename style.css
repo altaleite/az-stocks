@@ -588,3 +588,123 @@ table {
     min-width: 0;
   }
 }
+
+
+/* v13b — resumo por moeda, corretora e tipo */
+.resumo-v13 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.mini-card-brasil {
+  border-left: 4px solid rgba(22, 163, 74, 0.28);
+}
+
+.quebras-gerenciais {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 14px;
+  margin: 0 0 16px;
+}
+
+.quebras-gerenciais article {
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 18px;
+  padding: 16px 18px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
+}
+
+.quebras-gerenciais header {
+  margin-bottom: 12px;
+}
+
+.quebras-gerenciais header span {
+  display: block;
+  color: #ea580c;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.72rem;
+  font-weight: 900;
+  margin-bottom: 3px;
+}
+
+.quebras-gerenciais header strong {
+  color: #0f172a;
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.lista-quebras {
+  display: grid;
+  gap: 10px;
+}
+
+.linha-quebra {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 11px 12px;
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.linha-quebra strong {
+  display: block;
+  color: #0f172a;
+  font-size: 0.92rem;
+  font-weight: 900;
+}
+
+.linha-quebra span {
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.valores-quebra {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px 12px;
+  text-align: right;
+  min-width: 220px;
+}
+
+.valores-quebra span {
+  color: #0f172a;
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.valores-quebra small {
+  font-size: 0.76rem;
+  font-weight: 900;
+}
+
+@media (max-width: 1100px) {
+  .quebras-gerenciais {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .resumo-v13 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .resumo-v13 {
+    grid-template-columns: 1fr;
+  }
+
+  .linha-quebra {
+    grid-template-columns: 1fr;
+  }
+
+  .valores-quebra {
+    text-align: left;
+    min-width: 0;
+  }
+}
