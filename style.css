@@ -385,3 +385,87 @@ tbody tr:hover {
   gap: 10px;
   flex-wrap: wrap;
 }
+
+.tipo-ativo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 800;
+  border: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.observacao-tabela {
+  color: #64748b;
+  font-size: 0.82rem;
+  max-width: 180px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
+.resumo-financeiro {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin: 14px 0 16px;
+}
+
+.mini-card {
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 18px;
+  padding: 16px 18px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
+}
+
+.mini-card span {
+  display: block;
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 7px;
+}
+
+.mini-card strong {
+  display: block;
+  color: #0f172a;
+  font-size: 1.15rem;
+  font-weight: 900;
+}
+
+.mini-card strong.positivo {
+  color: #15803d;
+}
+
+.mini-card strong.negativo {
+  color: #b91c1c;
+}
+
+.tabela-container {
+  overflow-x: auto;
+}
+
+table {
+  min-width: 1220px;
+}
+
+@media (max-width: 900px) {
+  .resumo-financeiro {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .resumo-financeiro {
+    grid-template-columns: 1fr;
+  }
+}

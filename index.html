@@ -59,6 +59,25 @@
       </article>
     </section>
 
+    <section class="resumo-financeiro">
+      <article class="mini-card">
+        <span>Valor investido</span>
+        <strong id="valorInvestidoTotal">US$ 0,00</strong>
+      </article>
+      <article class="mini-card">
+        <span>Valor atual</span>
+        <strong id="valorAtualTotal">US$ 0,00</strong>
+      </article>
+      <article class="mini-card">
+        <span>Resultado</span>
+        <strong id="resultadoTotal">US$ 0,00</strong>
+      </article>
+      <article class="mini-card">
+        <span>Rentabilidade geral</span>
+        <strong id="rentabilidadeGeral">0,00%</strong>
+      </article>
+    </section>
+
     <section class="painel">
       <div class="barra-filtros">
         <div>
@@ -89,12 +108,18 @@
           <thead>
             <tr>
               <th>Código</th>
+              <th>Tipo</th>
               <th>Plataforma</th>
-              <th>Quantidade</th>
+              <th>Qtd.</th>
               <th>Preço médio</th>
-              <th>Valor atual</th>
-              <th>Rentabilidade</th>
+              <th>Preço atual</th>
+              <th>Investido</th>
+              <th>Posição</th>
+              <th>Resultado</th>
+              <th>Rentab.</th>
+              <th>Peso</th>
               <th>Situação</th>
+              <th>Observação</th>
             </tr>
           </thead>
           <tbody id="corpoTabela"></tbody>
@@ -102,7 +127,7 @@
       </div>
     </section>
 
-    <p class="observacao" id="mensagemAtualizacao">Versão v10: dados sincronizados com Google Sheets. Use “Editar carteira” para alterar ações, quantidades e limites.</p>
+    <p class="observacao" id="mensagemAtualizacao">Versão v12: painel gerencial com valor investido, valor atual da posição, resultado financeiro e peso na carteira.</p>
   </main>
 
   <script src="config.js"></script>

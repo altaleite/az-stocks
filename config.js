@@ -2,7 +2,7 @@
 // Planilha conectada ao painel AZ Stocks
 
 window.AZ_CONFIG = {
-  GOOGLE_SHEET_ID: "18FeqyS47TafLb4IXozbKBuCw_FtbbSxFac9Qn7x-OLs",
+  GOOGLE_SHEET_ID: "1Jfu04erEfI7nfAIW6bhItWt7qYbWsqztsffF3tbv0wE",
   SHEET_NAME: "Dados",
-  GOOGLE_SHEET_URL: "https://docs.google.com/spreadsheets/d/18FeqyS47TafLb4IXozbKBuCw_FtbbSxFac9Qn7x-OLs/edit?gid=1857073884#gid=1857073884"
+  GOOGLE_SHEET_URL: "https://docs.google.com/spreadsheets/d/1Jfu04erEfI7nfAIW6bhItWt7qYbWsqztsffF3tbv0wE/edit?gid=33218330#gid=33218330"
 };
