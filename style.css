@@ -828,3 +828,71 @@ table {
     min-width: 0;
   }
 }
+
+
+/* v14 — tabela com busca e ordenação */
+.quebras-gerenciais {
+  display: none !important;
+}
+
+.campo-busca {
+  min-width: 260px;
+}
+
+.campo-busca input {
+  width: 100%;
+  height: 42px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 12px;
+  padding: 0 14px;
+  color: #0f172a;
+  font-weight: 700;
+  background: #ffffff;
+  outline: none;
+}
+
+.campo-busca input:focus {
+  border-color: rgba(234, 88, 12, 0.55);
+  box-shadow: 0 0 0 4px rgba(234, 88, 12, 0.08);
+}
+
+.ordenar-coluna {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 900;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ordenar-coluna::after {
+  content: "↕";
+  color: #94a3b8;
+  font-size: 0.72rem;
+}
+
+.ordenar-coluna.ativo.asc::after {
+  content: "↑";
+  color: #ea580c;
+}
+
+.ordenar-coluna.ativo.desc::after {
+  content: "↓";
+  color: #ea580c;
+}
+
+.ordenar-coluna:hover {
+  color: #ea580c;
+}
+
+.barra-filtros {
+  align-items: end;
+  gap: 12px;
+  flex-wrap: wrap;
+}

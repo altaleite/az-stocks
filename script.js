@@ -3,9 +3,12 @@ let ativos = window.CARTEIRA_AZ || [];
 const corpoTabela = document.getElementById("corpoTabela");
 const filtroPlataforma = document.getElementById("filtroPlataforma");
 const filtroSituacao = document.getElementById("filtroSituacao");
+const buscaTabela = document.getElementById("buscaTabela");
 const botaoAtualizar = document.getElementById("botaoAtualizar");
 const ultimaAtualizacao = document.getElementById("ultimaAtualizacao");
 const mensagemAtualizacao = document.getElementById("mensagemAtualizacao");
+
+let ordenacaoAtual = { campo: "padrao", direcao: "asc" };
 
 function moedaDoAtivo(ativo) {
   return ativo.pais === "Brasil" ? "BRL" : "USD";
@@ -68,10 +71,6 @@ function definirSituacao(ativo) {
   return { texto: "Neutra", classe: "neutra" };
 }
 
-function ordemSituacao(texto) {
-  return { "Comprar": 1, "Venda parcial": 2, "Atenção": 3, "Neutra": 4 }[texto] || 99;
-}
-
 function enriquecerAtivos(lista) {
   const totalUSD = lista.filter(a => a.pais !== "Brasil").reduce((soma, a) => soma + valorPosicao(a), 0);
   const totalBRL = lista.filter(a => a.pais === "Brasil").reduce((soma, a) => soma + valorPosicao(a), 0);
@@ -84,16 +83,87 @@ function enriquecerAtivos(lista) {
     const situacao = definirSituacao(ativo);
     const totalMoeda = ativo.pais === "Brasil" ? totalBRL : totalUSD;
     const peso = totalMoeda > 0 ? (posicao / totalMoeda) * 100 : 0;
-
     return { ...ativo, investido, posicao, resultado, rentabilidade, situacao, peso };
   });
 }
 
+function valorOrdenacao(ativo, campo) {
+  const mapa = {
+    codigo: ativo.codigo,
+    tipo: ativo.tipo,
+    plataforma: ativo.plataforma,
+    quantidade: ativo.quantidade,
+    precoMedio: ativo.precoMedio,
+    valorAtual: ativo.valorAtual,
+    investido: ativo.investido,
+    posicao: ativo.posicao,
+    resultado: ativo.resultado,
+    rentabilidade: ativo.rentabilidade,
+    peso: ativo.peso,
+    situacao: ativo.situacao?.texto,
+    observacao: ativo.observacao
+  };
+  return mapa[campo];
+}
+
+function compararValores(a, b, campo, direcao) {
+  const valorA = valorOrdenacao(a, campo);
+  const valorB = valorOrdenacao(b, campo);
+  let resultado = 0;
+
+  if (typeof valorA === "number" || typeof valorB === "number") {
+    resultado = numero(valorA) - numero(valorB);
+  } else {
+    resultado = String(valorA || "").localeCompare(String(valorB || ""), "pt-BR", {
+      sensitivity: "base",
+      numeric: true
+    });
+  }
+
+  return direcao === "asc" ? resultado : -resultado;
+}
+
+function ordenarPadrao(a, b) {
+  const corretora = String(a.plataforma || "").localeCompare(String(b.plataforma || ""), "pt-BR", {
+    sensitivity: "base"
+  });
+
+  if (corretora !== 0) return corretora;
+
+  return String(a.codigo || "").localeCompare(String(b.codigo || ""), "pt-BR", {
+    sensitivity: "base",
+    numeric: true
+  });
+}
+
+function textoBuscaAtivo(ativo) {
+  return [ativo.codigo, ativo.tipo, ativo.plataforma, ativo.pais, ativo.situacao?.texto, ativo.observacao]
+    .join(" ")
+    .toLowerCase();
+}
+
 function filtrarAtivos() {
-  return enriquecerAtivos(ativos)
+  const termo = (buscaTabela?.value || "").trim().toLowerCase();
+
+  const lista = enriquecerAtivos(ativos)
     .filter(a => filtroPlataforma.value === "Todas" || a.plataforma === filtroPlataforma.value)
     .filter(a => filtroSituacao.value === "Todas" || a.situacao.texto === filtroSituacao.value)
-    .sort((a,b) => ordemSituacao(a.situacao.texto) - ordemSituacao(b.situacao.texto));
+    .filter(a => !termo || textoBuscaAtivo(a).includes(termo));
+
+  if (ordenacaoAtual.campo === "padrao") return lista.sort(ordenarPadrao);
+
+  return lista.sort((a, b) => compararValores(a, b, ordenacaoAtual.campo, ordenacaoAtual.direcao));
+}
+
+function atualizarIndicadorOrdenacao() {
+  document.querySelectorAll(".ordenar-coluna").forEach(botao => {
+    const campo = botao.dataset.sort;
+    botao.classList.remove("ativo", "asc", "desc");
+
+    if (campo === ordenacaoAtual.campo) {
+      botao.classList.add("ativo", ordenacaoAtual.direcao);
+    }
+  });
 }
 
 function atualizarCartoes(lista) {
@@ -125,7 +195,9 @@ function resumoPorPais(lista, brasil) {
 function atualizarCampo(id, valor, tipo) {
   const el = document.getElementById(id);
   if (!el) return;
+
   el.textContent = tipo === "%" ? formatarPercentual(valor) : formatarMoedaPorCodigo(valor, tipo);
+
   if (id.includes("resultado") || id.includes("rentabilidade")) {
     el.className = valor >= 0 ? "positivo" : "negativo";
   }
@@ -144,70 +216,6 @@ function atualizarResumoFinanceiro(lista) {
   atualizarCampo("valorAtualBrasil", brasil.atual, "BRL");
   atualizarCampo("resultadoBrasil", brasil.resultado, "BRL");
   atualizarCampo("rentabilidadeBrasil", brasil.rentabilidade, "%");
-
-  atualizarQuebrasGerenciais(lista);
-}
-
-function agrupar(lista, chaveFn) {
-  const grupos = {};
-
-  lista.forEach(ativo => {
-    const chave = chaveFn(ativo);
-    if (!grupos[chave]) {
-      grupos[chave] = { label: chave, investidoUSD: 0, atualUSD: 0, investidoBRL: 0, atualBRL: 0, quantidade: 0 };
-    }
-
-    if (ativo.pais === "Brasil") {
-      grupos[chave].investidoBRL += valorInvestido(ativo);
-      grupos[chave].atualBRL += valorPosicao(ativo);
-    } else {
-      grupos[chave].investidoUSD += valorInvestido(ativo);
-      grupos[chave].atualUSD += valorPosicao(ativo);
-    }
-
-    grupos[chave].quantidade += 1;
-  });
-
-  return Object.values(grupos);
-}
-
-function renderizarGrupo(containerId, grupos) {
-  const container = document.getElementById(containerId);
-  if (!container) return;
-
-  container.innerHTML = "";
-
-  grupos.forEach(g => {
-    const resUSD = g.atualUSD - g.investidoUSD;
-    const resBRL = g.atualBRL - g.investidoBRL;
-
-    const linha = document.createElement("div");
-    linha.className = "linha-quebra";
-    linha.innerHTML = `
-      <div>
-        <strong>${g.label}</strong>
-        <span>${g.quantidade} ativo${g.quantidade === 1 ? "" : "s"}</span>
-      </div>
-      <div class="valores-quebra">
-        <span>${formatarMoedaPorCodigo(g.atualUSD, "USD")}</span>
-        <small class="${resUSD >= 0 ? "positivo" : "negativo"}">${formatarMoedaPorCodigo(resUSD, "USD")}</small>
-        <span>${formatarMoedaPorCodigo(g.atualBRL, "BRL")}</span>
-        <small class="${resBRL >= 0 ? "positivo" : "negativo"}">${formatarMoedaPorCodigo(resBRL, "BRL")}</small>
-      </div>
-    `;
-    container.appendChild(linha);
-  });
-}
-
-function atualizarQuebrasGerenciais(lista) {
-  const porCorretora = agrupar(lista, a => a.plataforma)
-    .sort((a,b) => (b.atualUSD + b.atualBRL) - (a.atualUSD + a.atualBRL));
-
-  const porTipo = agrupar(lista, a => a.tipo || "Sem tipo")
-    .sort((a,b) => (b.atualUSD + b.atualBRL) - (a.atualUSD + a.atualBRL));
-
-  renderizarGrupo("quebraCorretora", porCorretora);
-  renderizarGrupo("quebraTipo", porTipo);
 }
 
 function renderizarTabela() {
@@ -239,6 +247,7 @@ function renderizarTabela() {
 
   atualizarCartoes(ativos);
   atualizarResumoFinanceiro(ativos);
+  atualizarIndicadorOrdenacao();
 }
 
 function atualizarData() {
@@ -301,6 +310,7 @@ async function atualizarDados() {
 
   try {
     const ok = await carregarGoogleSheets();
+    ordenacaoAtual = { campo: "padrao", direcao: "asc" };
     renderizarTabela();
     atualizarData();
 
@@ -323,8 +333,23 @@ async function atualizarDados() {
   botaoAtualizar.textContent = "Atualizar dados";
 }
 
+document.querySelectorAll(".ordenar-coluna").forEach(botao => {
+  botao.addEventListener("click", () => {
+    const campo = botao.dataset.sort;
+
+    if (ordenacaoAtual.campo === campo) {
+      ordenacaoAtual.direcao = ordenacaoAtual.direcao === "asc" ? "desc" : "asc";
+    } else {
+      ordenacaoAtual = { campo, direcao: "asc" };
+    }
+
+    renderizarTabela();
+  });
+});
+
 filtroPlataforma.addEventListener("change", renderizarTabela);
 filtroSituacao.addEventListener("change", renderizarTabela);
+buscaTabela?.addEventListener("input", renderizarTabela);
 botaoAtualizar.addEventListener("click", atualizarDados);
 
 renderizarTabela();

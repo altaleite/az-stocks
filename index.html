@@ -93,26 +93,7 @@
         <strong id="rentabilidadeBrasil">0,00%</strong>
       </article>
     </section>
-
-    <section class="quebras-gerenciais">
-      <article>
-        <header>
-          <span>Por corretora</span>
-          <strong>Distribuição da posição</strong>
-        </header>
-        <div id="quebraCorretora" class="lista-quebras"></div>
-      </article>
-
-      <article>
-        <header>
-          <span>Por tipo</span>
-          <strong>Ação vs ETF</strong>
-        </header>
-        <div id="quebraTipo" class="lista-quebras"></div>
-      </article>
-    </section>
-
-    <section class="painel">
+<section class="painel">
       <div class="barra-filtros">
         <div>
           <label for="filtroPlataforma">Plataforma</label>
@@ -135,25 +116,30 @@
             <option value="Neutra">Neutra</option>
           </select>
         </div>
+
+        <div class="campo-busca">
+          <label for="buscaTabela">Buscar na tabela</label>
+          <input id="buscaTabela" type="search" placeholder="Ex.: MSFT, Nomad, ETF..." />
+        </div>
       </div>
 
       <div class="tabela-container">
         <table>
           <thead>
             <tr>
-              <th>Código</th>
-              <th>Tipo</th>
-              <th>Plataforma</th>
-              <th>Qtd.</th>
-              <th>Preço médio</th>
-              <th>Preço atual</th>
-              <th>Investido</th>
-              <th>Posição</th>
-              <th>Resultado</th>
-              <th>Rentab.</th>
-              <th>Peso</th>
-              <th>Situação</th>
-              <th>Observação</th>
+              <th><button class="ordenar-coluna" data-sort="codigo">Código</button></th>
+              <th><button class="ordenar-coluna" data-sort="tipo">Tipo</button></th>
+              <th><button class="ordenar-coluna" data-sort="plataforma">Plataforma</button></th>
+              <th><button class="ordenar-coluna" data-sort="quantidade">Qtd.</button></th>
+              <th><button class="ordenar-coluna" data-sort="precoMedio">Preço médio</button></th>
+              <th><button class="ordenar-coluna" data-sort="valorAtual">Preço atual</button></th>
+              <th><button class="ordenar-coluna" data-sort="investido">Investido</button></th>
+              <th><button class="ordenar-coluna" data-sort="posicao">Posição</button></th>
+              <th><button class="ordenar-coluna" data-sort="resultado">Resultado</button></th>
+              <th><button class="ordenar-coluna" data-sort="rentabilidade">Rentab.</button></th>
+              <th><button class="ordenar-coluna" data-sort="peso">Peso</button></th>
+              <th><button class="ordenar-coluna" data-sort="situacao">Situação</button></th>
+              <th><button class="ordenar-coluna" data-sort="observacao">Observação</button></th>
             </tr>
           </thead>
           <tbody id="corpoTabela"></tbody>
@@ -161,7 +147,7 @@
       </div>
     </section>
 
-    <p class="observacao" id="mensagemAtualizacao">Versão v13c: resumo separado por moeda, corretora e tipo de ativo.</p>
+    <p class="observacao" id="mensagemAtualizacao">Versão v14: tabela com busca rápida, títulos clicáveis e organização por corretora/código.</p>
   </main>
 
   <script src="config.js"></script>
