@@ -19,7 +19,10 @@ function esc(valor) {
   }[c]));
 }
 
+let cambioVivo = 0; // câmbio lido da aba Cambio da planilha; 0 = cai no config.js
+
 function cambioUSDBRL() {
+  if (cambioVivo > 0) return cambioVivo;
   const c = Number((window.AZ_CONFIG || {}).USD_BRL);
   return c > 0 ? c : 0;
 }
@@ -249,9 +252,17 @@ function atualizarHeroConsolidado(eua, brasil) {
   document.getElementById("patrimonioEUA").textContent = formatarMoedaPorCodigo(euaEmBRL, "BRL");
   document.getElementById("patrimonioBrasil").textContent = formatarMoedaPorCodigo(brasil.atual, "BRL");
 
-  const cambioData = (window.AZ_CONFIG || {}).USD_BRL_DATA;
-  document.getElementById("cambioInfo").textContent =
-    cambio > 0 ? `R$ ${cambio.toFixed(2).replace(".", ",")}${cambioData ? " · " + cambioData : ""}` : "—";
+  const cambioTexto = cambio > 0 ? `R$ ${cambio.toFixed(2).replace(".", ",")}` : "—";
+  let sufixo = "";
+  if (cambio > 0) {
+    if (cambioVivo > 0) {
+      sufixo = " · ao vivo";
+    } else {
+      const cambioData = (window.AZ_CONFIG || {}).USD_BRL_DATA;
+      sufixo = cambioData ? " · " + cambioData : " · config";
+    }
+  }
+  document.getElementById("cambioInfo").textContent = cambioTexto + sufixo;
 
   const elResultado = document.getElementById("patrimonioResultado");
   const sinal = resultado >= 0 ? "+" : "";
@@ -339,6 +350,28 @@ function mapearLinhaGoogle(linha) {
   };
 }
 
+// Lê o câmbio ao vivo da aba Cambio (1ª célula com número > 0). Devolve 0 se não achar.
+async function carregarCambio() {
+  const cfg = window.AZ_CONFIG || {};
+  if (!cfg.GOOGLE_SHEET_ID) return 0;
+
+  const aba = cfg.CAMBIO_SHEET || "Cambio";
+  const url = `https://docs.google.com/spreadsheets/d/${cfg.GOOGLE_SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(aba)}`;
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error("Não consegui acessar a aba de câmbio.");
+
+  const json = JSON.parse(limparRespostaGoogle(await resp.text()));
+  const linhas = (json.table && json.table.rows) || [];
+
+  for (const linha of linhas) {
+    for (const celula of (linha.c || [])) {
+      const v = numero(valorCelula(celula));
+      if (v > 0) return v;
+    }
+  }
+  return 0;
+}
+
 async function carregarGoogleSheets() {
   const cfg = window.AZ_CONFIG || {};
   if (!cfg.GOOGLE_SHEET_ID) return false;
@@ -366,6 +399,14 @@ async function atualizarDados() {
   mensagemAtualizacao.className = "observacao";
 
   try {
+    // Câmbio ao vivo (opcional): nunca derruba o resto se a aba não existir.
+    try {
+      const c = await carregarCambio();
+      cambioVivo = c > 0 ? c : 0;
+    } catch (eCambio) {
+      cambioVivo = 0;
+    }
+
     const ok = await carregarGoogleSheets();
     dadosAoVivo = ok;
     ordenacaoAtual = { campo: "padrao", direcao: "asc" };
