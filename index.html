@@ -19,11 +19,33 @@
       </div>
 
       <div class="acoes-topo">
-        <span id="ultimaAtualizacao">Atualizado agora</span>
+        <span id="badgeOrigem" class="badge-origem carregando">Carregando dados…</span>
         <a class="botao-secundario" href="https://docs.google.com/spreadsheets/d/1Jfu04erEfI7nfAIW6bhItWt7qYbWsqztsffF3tbv0wE/edit?gid=33218330#gid=33218330" target="_blank" rel="noopener noreferrer">Editar carteira</a>
         <button id="botaoAtualizar">Atualizar dados</button>
       </div>
     </header>
+
+    <section class="hero">
+      <div class="hero-principal">
+        <span class="hero-rotulo">Patrimônio total consolidado</span>
+        <strong id="patrimonioTotal" class="hero-numero">R$ 0,00</strong>
+        <span id="patrimonioResultado" class="hero-resultado">—</span>
+      </div>
+      <div class="hero-detalhes">
+        <article>
+          <span>EUA (convertido em BRL)</span>
+          <strong id="patrimonioEUA">R$ 0,00</strong>
+        </article>
+        <article>
+          <span>Brasil</span>
+          <strong id="patrimonioBrasil">R$ 0,00</strong>
+        </article>
+        <article>
+          <span>Câmbio USD/BRL</span>
+          <strong id="cambioInfo">—</strong>
+        </article>
+      </div>
+    </section>
 
     <section class="cartoes">
       <article class="cartao compra">
@@ -58,6 +80,7 @@
         <strong id="totalNeutras">0</strong>
       </article>
     </section>
+
     <section class="resumo-financeiro resumo-v13">
       <article class="mini-card">
         <span>EUA — Investido</span>
@@ -93,7 +116,8 @@
         <strong id="rentabilidadeBrasil">0,00%</strong>
       </article>
     </section>
-<section class="painel">
+
+    <section class="painel">
       <div class="barra-filtros">
         <div>
           <label for="filtroPlataforma">Plataforma</label>
@@ -147,7 +171,10 @@
       </div>
     </section>
 
-    <p class="observacao" id="mensagemAtualizacao">Versão v14: tabela com busca rápida, títulos clicáveis e organização por corretora/código.</p>
+    <footer class="rodape">
+      <span id="ultimaAtualizacao">Atualizado agora</span>
+      <p class="observacao" id="mensagemAtualizacao">Versão v15: planilha como fonte única, patrimônio consolidado em BRL e selo de origem dos dados.</p>
+    </footer>
   </main>
 
   <script src="config.js"></script>

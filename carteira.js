@@ -2,6 +2,10 @@
 // Para atualizar sua carteira, altere os dados abaixo.
 // Atenção: use ponto para casas decimais. Exemplo: 487.23
 
+// Data deste snapshot local (preços de fallback). Quando a planilha carrega ao vivo,
+// estes valores nem são usados. Atualize a data sempre que editar os preços abaixo.
+window.CARTEIRA_AZ_SNAPSHOT = "";
+
 window.CARTEIRA_AZ = [
   { codigo: "MSFT", tipo: "Ação", observacao: "Big tech / longo prazo", plataforma: "Nomad", pais: "EUA", quantidade: 0.4157, precoMedio: 487.23, valorAtual: 390.70, compra: 8, venda: 22.5 },
   { codigo: "AAPL", tipo: "Ação", observacao: "Big tech / longo prazo", plataforma: "Nomad", pais: "EUA", quantidade: 0.7598, precoMedio: 266.51, valorAtual: 291.51, compra: 8, venda: 22.5 },

@@ -1,4 +1,5 @@
 let ativos = window.CARTEIRA_AZ || [];
+let dadosAoVivo = false; // true quando a planilha Google carrega; false = fallback local
 
 const corpoTabela = document.getElementById("corpoTabela");
 const filtroPlataforma = document.getElementById("filtroPlataforma");
@@ -7,8 +8,21 @@ const buscaTabela = document.getElementById("buscaTabela");
 const botaoAtualizar = document.getElementById("botaoAtualizar");
 const ultimaAtualizacao = document.getElementById("ultimaAtualizacao");
 const mensagemAtualizacao = document.getElementById("mensagemAtualizacao");
+const badgeOrigem = document.getElementById("badgeOrigem");
 
 let ordenacaoAtual = { campo: "padrao", direcao: "asc" };
+
+// Escapa texto antes de injetar na tabela (evita HTML/script vindo de qualquer campo)
+function esc(valor) {
+  return String(valor == null ? "" : valor).replace(/[&<>"']/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[c]));
+}
+
+function cambioUSDBRL() {
+  const c = Number((window.AZ_CONFIG || {}).USD_BRL);
+  return c > 0 ? c : 0;
+}
 
 function moedaDoAtivo(ativo) {
   return ativo.pais === "Brasil" ? "BRL" : "USD";
@@ -216,6 +230,47 @@ function atualizarResumoFinanceiro(lista) {
   atualizarCampo("valorAtualBrasil", brasil.atual, "BRL");
   atualizarCampo("resultadoBrasil", brasil.resultado, "BRL");
   atualizarCampo("rentabilidadeBrasil", brasil.rentabilidade, "%");
+
+  return { eua, brasil };
+}
+
+// Consolida EUA (em USD) + Brasil (em BRL) num único patrimônio em reais.
+function atualizarHeroConsolidado(eua, brasil) {
+  const cambio = cambioUSDBRL();
+  const euaEmBRL = eua.atual * cambio;
+  const investidoEUAEmBRL = eua.investido * cambio;
+
+  const patrimonio = euaEmBRL + brasil.atual;
+  const investidoTotal = investidoEUAEmBRL + brasil.investido;
+  const resultado = patrimonio - investidoTotal;
+  const rentab = investidoTotal > 0 ? (resultado / investidoTotal) * 100 : 0;
+
+  document.getElementById("patrimonioTotal").textContent = formatarMoedaPorCodigo(patrimonio, "BRL");
+  document.getElementById("patrimonioEUA").textContent = formatarMoedaPorCodigo(euaEmBRL, "BRL");
+  document.getElementById("patrimonioBrasil").textContent = formatarMoedaPorCodigo(brasil.atual, "BRL");
+
+  const cambioData = (window.AZ_CONFIG || {}).USD_BRL_DATA;
+  document.getElementById("cambioInfo").textContent =
+    cambio > 0 ? `R$ ${cambio.toFixed(2).replace(".", ",")}${cambioData ? " · " + cambioData : ""}` : "—";
+
+  const elResultado = document.getElementById("patrimonioResultado");
+  const sinal = resultado >= 0 ? "+" : "";
+  elResultado.textContent =
+    `${sinal}${formatarMoedaPorCodigo(resultado, "BRL")}  (${sinal}${formatarPercentual(rentab)})`;
+  elResultado.className = `hero-resultado ${resultado >= 0 ? "positivo" : "negativo"}`;
+}
+
+function atualizarBadgeOrigem() {
+  if (!badgeOrigem) return;
+
+  if (dadosAoVivo) {
+    badgeOrigem.textContent = "Ao vivo · planilha";
+    badgeOrigem.className = "badge-origem aovivo";
+  } else {
+    const snap = window.CARTEIRA_AZ_SNAPSHOT;
+    badgeOrigem.textContent = snap ? `Local · snapshot de ${snap}` : "Local · carteira.js";
+    badgeOrigem.className = "badge-origem local";
+  }
 }
 
 function renderizarTabela() {
@@ -228,9 +283,9 @@ function renderizarTabela() {
     const classeResultado = a.resultado >= 0 ? "positiva" : "negativa";
 
     tr.innerHTML = `
-      <td class="codigo">${a.codigo}</td>
-      <td><span class="tipo-ativo">${a.tipo || "-"}</span></td>
-      <td><span class="plataforma">${a.plataforma}</span></td>
+      <td class="codigo">${esc(a.codigo)}</td>
+      <td><span class="tipo-ativo">${esc(a.tipo || "-")}</span></td>
+      <td><span class="plataforma">${esc(a.plataforma)}</span></td>
       <td>${formatarNumero(a.quantidade)}</td>
       <td>${formatarMoeda(a.precoMedio, a)}</td>
       <td>${formatarMoeda(a.valorAtual, a)}</td>
@@ -239,14 +294,16 @@ function renderizarTabela() {
       <td class="rentabilidade ${classeResultado}">${formatarMoeda(a.resultado, a)}</td>
       <td class="rentabilidade ${classeRentabilidade}">${formatarPercentual(a.rentabilidade)}</td>
       <td>${formatarPercentual(a.peso)}</td>
-      <td><span class="situacao ${a.situacao.classe}">${a.situacao.texto}</span></td>
-      <td class="observacao-tabela">${a.observacao || ""}</td>`;
+      <td><span class="situacao ${a.situacao.classe}">${esc(a.situacao.texto)}</span></td>
+      <td class="observacao-tabela" title="${esc(a.observacao || "")}">${esc(a.observacao || "")}</td>`;
 
     corpoTabela.appendChild(tr);
   });
 
   atualizarCartoes(ativos);
-  atualizarResumoFinanceiro(ativos);
+  const { eua, brasil } = atualizarResumoFinanceiro(ativos);
+  atualizarHeroConsolidado(eua, brasil);
+  atualizarBadgeOrigem();
   atualizarIndicadorOrdenacao();
 }
 
@@ -310,6 +367,7 @@ async function atualizarDados() {
 
   try {
     const ok = await carregarGoogleSheets();
+    dadosAoVivo = ok;
     ordenacaoAtual = { campo: "padrao", direcao: "asc" };
     renderizarTabela();
     atualizarData();
@@ -323,6 +381,7 @@ async function atualizarDados() {
     }
   } catch(e) {
     console.error(e);
+    dadosAoVivo = false;
     renderizarTabela();
     atualizarData();
     mensagemAtualizacao.textContent = "Não consegui ler o Google Sheets. Mantive a carteira local.";
