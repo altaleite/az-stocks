@@ -362,20 +362,14 @@ select {
 
 .campo-busca { min-width: 260px; flex: 1; }
 
-.campo-busca input {
-  width: 100%;
-  height: 44px;
-  border: 1px solid rgba(148, 163, 184, 0.28);
-  border-radius: 12px;
-  padding: 0 14px;
-  color: #0f172a;
+.contador-ativos {
+  margin-left: auto;
+  align-self: center;
+  font-size: 12.5px;
   font-weight: 600;
-  font-family: var(--fonte-ui);
-  background: #ffffff;
-  outline: none;
+  color: var(--texto-suave);
+  white-space: nowrap;
 }
-
-.campo-busca input:focus { border-color: rgba(234, 88, 12, 0.55); box-shadow: 0 0 0 4px rgba(234, 88, 12, 0.08); }
 
 .botao-limpar {
   height: 44px;
@@ -396,7 +390,7 @@ select {
   border: 1px solid #edf0f3;
 }
 
-table { width: 100%; min-width: 1240px; border-collapse: collapse; }
+table { width: 100%; min-width: 1320px; border-collapse: collapse; }
 
 thead { position: sticky; top: 0; z-index: 2; }
 
@@ -408,7 +402,7 @@ th {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.065em;
-  padding: 12px 18px;
+  padding: 12px 14px;
   white-space: nowrap;
   font-weight: 700;
   background: #fff;
@@ -418,7 +412,7 @@ th {
 th.num, td.num { text-align: right; }
 th.num .ordenar-coluna { justify-content: flex-end; width: 100%; }
 
-td { padding: 10px 18px; border-top: 1px solid var(--linha); font-size: 14px; vertical-align: middle; }
+td { padding: 10px 14px; border-top: 1px solid var(--linha); font-size: 14px; vertical-align: middle; }
 
 tbody tr { transition: background 0.15s ease; }
 tbody tr.dado:nth-child(even of .dado) { background: #fcfcfb; }
@@ -435,7 +429,49 @@ tr.grupo td {
 .grupo-nome { font-family: var(--fonte-display); font-weight: 700; font-size: 13px; color: var(--laranja-escuro); letter-spacing: -0.01em; }
 .grupo-meta { font-size: 12px; font-weight: 600; color: var(--texto-suave); }
 
-.codigo { font-family: var(--fonte-display); font-weight: 700; font-size: 15px; letter-spacing: -0.02em; }
+.celula-ativo { line-height: 1.25; min-width: 150px; }
+.ativo-nome {
+  display: block;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  color: var(--texto);
+}
+.ativo-codigo {
+  display: block;
+  font-family: var(--fonte-display);
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--texto-suave);
+  letter-spacing: 0.01em;
+}
+
+.celula-peso { min-width: 92px; }
+.peso-valor { display: block; }
+.peso-barra {
+  display: block;
+  margin-top: 4px;
+  margin-left: auto;
+  width: 64px;
+  height: 4px;
+  border-radius: 999px;
+  background: #eef1f4;
+  overflow: hidden;
+}
+.peso-barra > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--laranja-2), var(--laranja));
+}
+
+tr.sem-dados td {
+  text-align: center;
+  padding: 28px 18px;
+  color: var(--texto-suave);
+  font-size: 14px;
+  font-weight: 500;
+}
 
 .plataforma {
   display: inline-flex;

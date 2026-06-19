@@ -5,7 +5,8 @@ let situacaoSelecionada = "Todas"; // filtro acionado pelos cards de situação
 
 const corpoTabela = document.getElementById("corpoTabela");
 const filtroPlataforma = document.getElementById("filtroPlataforma");
-const buscaTabela = document.getElementById("buscaTabela");
+const filtroTipo = document.getElementById("filtroTipo");
+const contadorAtivos = document.getElementById("contadorAtivos");
 const botaoAtualizar = document.getElementById("botaoAtualizar");
 const botaoLimpar = document.getElementById("limparFiltros");
 const ultimaAtualizacao = document.getElementById("ultimaAtualizacao");
@@ -79,6 +80,11 @@ function definirSituacao(ativo) {
   return { texto: "Neutra", classe: "neutra" };
 }
 
+function nomeAtivo(codigo) {
+  const mapa = window.NOMES_ATIVOS || {};
+  return mapa[codigo] || "";
+}
+
 function enriquecerAtivos(lista) {
   const totalUSD = lista.filter(a => a.pais !== "Brasil").reduce((soma, a) => soma + valorPosicao(a), 0);
   const totalBRL = lista.filter(a => a.pais === "Brasil").reduce((soma, a) => soma + valorPosicao(a), 0);
@@ -91,13 +97,14 @@ function enriquecerAtivos(lista) {
     const situacao = definirSituacao(ativo);
     const totalMoeda = ativo.pais === "Brasil" ? totalBRL : totalUSD;
     const peso = totalMoeda > 0 ? (posicao / totalMoeda) * 100 : 0;
-    return { ...ativo, investido, posicao, resultado, rentabilidade, situacao, peso };
+    const nome = nomeAtivo(ativo.codigo);
+    return { ...ativo, investido, posicao, resultado, rentabilidade, situacao, peso, nome };
   });
 }
 
 function valorOrdenacao(ativo, campo) {
   const mapa = {
-    codigo: ativo.codigo, tipo: ativo.tipo, plataforma: ativo.plataforma,
+    codigo: ativo.codigo, nome: ativo.nome, tipo: ativo.tipo, plataforma: ativo.plataforma,
     quantidade: ativo.quantidade, precoMedio: ativo.precoMedio, valorAtual: ativo.valorAtual,
     investido: ativo.investido, posicao: ativo.posicao, resultado: ativo.resultado,
     rentabilidade: ativo.rentabilidade, peso: ativo.peso,
@@ -125,17 +132,11 @@ function ordenarPadrao(a, b) {
   return String(a.codigo || "").localeCompare(String(b.codigo || ""), "pt-BR", { sensitivity: "base", numeric: true });
 }
 
-function textoBuscaAtivo(ativo) {
-  return [ativo.codigo, ativo.tipo, ativo.plataforma, ativo.pais, ativo.situacao?.texto, ativo.observacao]
-    .join(" ").toLowerCase();
-}
-
-// Base = plataforma + busca (sem o filtro de situação). Alimenta os contadores dos cards.
+// Base = plataforma + tipo (sem o filtro de situação). Alimenta os contadores dos cards.
 function listaBase() {
-  const termo = (buscaTabela?.value || "").trim().toLowerCase();
   return enriquecerAtivos(ativos)
     .filter(a => filtroPlataforma.value === "Todas" || a.plataforma === filtroPlataforma.value)
-    .filter(a => !termo || textoBuscaAtivo(a).includes(termo));
+    .filter(a => filtroTipo.value === "Todos" || a.tipo === filtroTipo.value);
 }
 
 function listaParaTabela() {
@@ -258,8 +259,16 @@ function atualizarBotaoLimpar() {
   if (!botaoLimpar) return;
   const ativo = situacaoSelecionada !== "Todas"
     || filtroPlataforma.value !== "Todas"
-    || (buscaTabela?.value || "").trim() !== "";
+    || filtroTipo.value !== "Todos";
   botaoLimpar.hidden = !ativo;
+}
+
+function atualizarContador(qtdMostrada) {
+  if (!contadorAtivos) return;
+  const total = ativos.length;
+  contadorAtivos.textContent = qtdMostrada === total
+    ? `${total} ativos`
+    : `Mostrando ${qtdMostrada} de ${total} ativos`;
 }
 
 function celulaGrupo(plataforma, qtd, totalPos, moeda) {
@@ -278,6 +287,7 @@ function renderizarTabela() {
 
   const agrupar = ordenacaoAtual.campo === "padrao";
   let plataformaAtual = null;
+  const maxPeso = lista.reduce((m, a) => Math.max(m, a.peso), 0) || 1;
 
   lista.forEach(a => {
     if (agrupar && a.plataforma !== plataformaAtual) {
@@ -292,9 +302,12 @@ function renderizarTabela() {
     tr.className = "dado";
     const classeRent = a.rentabilidade >= 0 ? "positiva" : "negativa";
     const classeRes = a.resultado >= 0 ? "positiva" : "negativa";
+    const larguraPeso = Math.max(4, (a.peso / maxPeso) * 100);
+    const nomeExib = a.nome ? esc(a.nome) : esc(a.codigo);
+    const codigoExib = a.nome ? `<span class="ativo-codigo">${esc(a.codigo)}</span>` : "";
 
     tr.innerHTML = `
-      <td class="codigo">${esc(a.codigo)}</td>
+      <td class="celula-ativo"><span class="ativo-nome">${nomeExib}</span>${codigoExib}</td>
       <td><span class="tipo-ativo">${esc(a.tipo || "-")}</span></td>
       <td><span class="plataforma">${esc(a.plataforma)}</span></td>
       <td class="num">${formatarNumero(a.quantidade)}</td>
@@ -304,15 +317,26 @@ function renderizarTabela() {
       <td class="num">${formatarMoeda(a.posicao, a)}</td>
       <td class="num rentabilidade ${classeRes}">${formatarMoeda(a.resultado, a)}</td>
       <td class="num rentabilidade ${classeRent}">${formatarPercentual(a.rentabilidade)}</td>
-      <td class="num">${formatarPercentual(a.peso)}</td>
+      <td class="num celula-peso">
+        <span class="peso-valor">${formatarPercentual(a.peso)}</span>
+        <span class="peso-barra"><span style="width:${larguraPeso.toFixed(1)}%"></span></span>
+      </td>
       <td><span class="situacao ${a.situacao.classe}">${esc(a.situacao.texto)}</span></td>
       <td class="observacao-tabela" title="${esc(a.observacao || "")}">${esc(a.observacao || "")}</td>`;
 
     corpoTabela.appendChild(tr);
   });
 
+  if (!lista.length) {
+    const tr = document.createElement("tr");
+    tr.className = "sem-dados";
+    tr.innerHTML = `<td colspan="13">Nenhum ativo com esses filtros. Use “Limpar filtros” para ver tudo.</td>`;
+    corpoTabela.appendChild(tr);
+  }
+
   const base = listaBase();
   atualizarCartoes(base);
+  atualizarContador(lista.length);
   const { eua, brasil } = atualizarResumoFinanceiro(ativos);
   atualizarHeroConsolidado(eua, brasil);
   atualizarBadgeOrigem();
@@ -453,12 +477,12 @@ cartoesSituacao.forEach(card => {
 });
 
 filtroPlataforma.addEventListener("change", renderizarTabela);
-buscaTabela?.addEventListener("input", renderizarTabela);
+filtroTipo.addEventListener("change", renderizarTabela);
 botaoAtualizar.addEventListener("click", atualizarDados);
 botaoLimpar?.addEventListener("click", () => {
   situacaoSelecionada = "Todas";
   filtroPlataforma.value = "Todas";
-  if (buscaTabela) buscaTabela.value = "";
+  filtroTipo.value = "Todos";
   renderizarTabela();
 });
 

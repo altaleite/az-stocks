@@ -125,10 +125,16 @@
           </select>
         </div>
 
-        <div class="campo-busca">
-          <label for="buscaTabela">Buscar na tabela</label>
-          <input id="buscaTabela" type="search" placeholder="Ex.: MSFT, Nomad, ETF..." />
+        <div>
+          <label for="filtroTipo">Tipo</label>
+          <select id="filtroTipo">
+            <option value="Todos">Todos</option>
+            <option value="Ação">Ação</option>
+            <option value="ETF">ETF</option>
+          </select>
         </div>
+
+        <span id="contadorAtivos" class="contador-ativos"></span>
 
         <button type="button" id="limparFiltros" class="botao-limpar" hidden>Limpar filtros</button>
       </div>
@@ -137,7 +143,7 @@
         <table>
           <thead>
             <tr>
-              <th><button class="ordenar-coluna" data-sort="codigo">Código</button></th>
+              <th><button class="ordenar-coluna" data-sort="nome">Ativo</button></th>
               <th><button class="ordenar-coluna" data-sort="tipo">Tipo</button></th>
               <th><button class="ordenar-coluna" data-sort="plataforma">Plataforma</button></th>
               <th class="num"><button class="ordenar-coluna" data-sort="quantidade">Qtd.</button></th>

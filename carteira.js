@@ -37,3 +37,32 @@ window.CARTEIRA_AZ = [
 
   { codigo: "XLV", tipo: "ETF", observacao: "ETF saúde", plataforma: "Inter", pais: "EUA", quantidade: 0.42011, precoMedio: 155.72, valorAtual: 153.81, compra: 8, venda: 22.5 }
 ];
+
+// Nomes das empresas/fundos por código. Usado só para exibição na coluna "Ativo".
+// Edite à vontade — se um código não estiver aqui, o painel mostra só o código.
+window.NOMES_ATIVOS = {
+  MSFT: "Microsoft",
+  AAPL: "Apple",
+  UNH: "UnitedHealth Group",
+  PG: "Procter & Gamble",
+  NVO: "Novo Nordisk",
+  TSLA: "Tesla",
+  NFLX: "Netflix",
+  SPOT: "Spotify",
+  ADBE: "Adobe",
+  BIIB: "Biogen",
+  MSTR: "Strategy (MicroStrategy)",
+  VEU: "Vanguard All-World ex-US",
+  SPY: "SPDR S&P 500",
+  IVV: "iShares S&P 500",
+  META: "Meta Platforms",
+  RARE: "Ultragenyx Pharmaceutical",
+  XLV: "Health Care SPDR",
+  TAEE11: "Taesa",
+  VALE3: "Vale",
+  HYPE3: "Hypera",
+  ITUB4: "Itaú Unibanco",
+  VIVA3: "Vivara",
+  BIOM3: "Biomm",
+  BOVA11: "iShares Ibovespa"
+};
