@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AZ Stocks</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -33,7 +36,7 @@
       </div>
       <div class="hero-detalhes">
         <article>
-          <span>EUA (convertido em BRL)</span>
+          <span>EUA (em BRL)</span>
           <strong id="patrimonioEUA">R$ 0,00</strong>
         </article>
         <article>
@@ -47,73 +50,65 @@
       </div>
     </section>
 
-    <section class="cartoes">
-      <article class="cartao compra">
+    <section class="cartoes" aria-label="Filtrar por situação">
+      <button type="button" class="cartao compra" data-situacao="Comprar" aria-pressed="false">
         <div>
           <p>Comprar</p>
           <span>Oportunidades</span>
         </div>
         <strong id="totalComprar">0</strong>
-      </article>
+      </button>
 
-      <article class="cartao venda">
+      <button type="button" class="cartao venda" data-situacao="Venda parcial" aria-pressed="false">
         <div>
           <p>Venda parcial</p>
           <span>Realização</span>
         </div>
         <strong id="totalVender">0</strong>
-      </article>
+      </button>
 
-      <article class="cartao atencao">
+      <button type="button" class="cartao atencao" data-situacao="Atenção" aria-pressed="false">
         <div>
           <p>Atenção</p>
           <span>Revisar tese</span>
         </div>
         <strong id="totalAtencao">0</strong>
-      </article>
+      </button>
 
-      <article class="cartao neutra">
+      <button type="button" class="cartao neutra" data-situacao="Neutra" aria-pressed="false">
         <div>
           <p>Neutras</p>
           <span>Acompanhar</span>
         </div>
         <strong id="totalNeutras">0</strong>
-      </article>
+      </button>
     </section>
 
-    <section class="resumo-financeiro resumo-v13">
-      <article class="mini-card">
-        <span>EUA — Investido</span>
-        <strong id="valorInvestidoEUA">US$ 0,00</strong>
-      </article>
-      <article class="mini-card">
-        <span>EUA — Atual</span>
-        <strong id="valorAtualEUA">US$ 0,00</strong>
-      </article>
-      <article class="mini-card">
-        <span>EUA — Resultado</span>
-        <strong id="resultadoEUA">US$ 0,00</strong>
-      </article>
-      <article class="mini-card">
-        <span>EUA — Rentabilidade</span>
-        <strong id="rentabilidadeEUA">0,00%</strong>
+    <section class="regioes" aria-label="Resumo por região">
+      <article class="regiao regiao-eua">
+        <header>
+          <span class="regiao-tag">Estados Unidos</span>
+          <span class="regiao-moeda">USD</span>
+        </header>
+        <div class="regiao-grade">
+          <div><span>Investido</span><strong id="valorInvestidoEUA">US$ 0,00</strong></div>
+          <div><span>Atual</span><strong id="valorAtualEUA">US$ 0,00</strong></div>
+          <div><span>Resultado</span><strong id="resultadoEUA">US$ 0,00</strong></div>
+          <div><span>Rentabilidade</span><strong id="rentabilidadeEUA">0,00%</strong></div>
+        </div>
       </article>
 
-      <article class="mini-card mini-card-brasil">
-        <span>Brasil — Investido</span>
-        <strong id="valorInvestidoBrasil">R$ 0,00</strong>
-      </article>
-      <article class="mini-card mini-card-brasil">
-        <span>Brasil — Atual</span>
-        <strong id="valorAtualBrasil">R$ 0,00</strong>
-      </article>
-      <article class="mini-card mini-card-brasil">
-        <span>Brasil — Resultado</span>
-        <strong id="resultadoBrasil">R$ 0,00</strong>
-      </article>
-      <article class="mini-card mini-card-brasil">
-        <span>Brasil — Rentabilidade</span>
-        <strong id="rentabilidadeBrasil">0,00%</strong>
+      <article class="regiao regiao-brasil">
+        <header>
+          <span class="regiao-tag">Brasil</span>
+          <span class="regiao-moeda">BRL</span>
+        </header>
+        <div class="regiao-grade">
+          <div><span>Investido</span><strong id="valorInvestidoBrasil">R$ 0,00</strong></div>
+          <div><span>Atual</span><strong id="valorAtualBrasil">R$ 0,00</strong></div>
+          <div><span>Resultado</span><strong id="resultadoBrasil">R$ 0,00</strong></div>
+          <div><span>Rentabilidade</span><strong id="rentabilidadeBrasil">0,00%</strong></div>
+        </div>
       </article>
     </section>
 
@@ -130,21 +125,12 @@
           </select>
         </div>
 
-        <div>
-          <label for="filtroSituacao">Situação</label>
-          <select id="filtroSituacao">
-            <option value="Todas">Todas</option>
-            <option value="Comprar">Comprar</option>
-            <option value="Venda parcial">Venda parcial</option>
-            <option value="Atenção">Atenção</option>
-            <option value="Neutra">Neutra</option>
-          </select>
-        </div>
-
         <div class="campo-busca">
           <label for="buscaTabela">Buscar na tabela</label>
           <input id="buscaTabela" type="search" placeholder="Ex.: MSFT, Nomad, ETF..." />
         </div>
+
+        <button type="button" id="limparFiltros" class="botao-limpar" hidden>Limpar filtros</button>
       </div>
 
       <div class="tabela-container">
@@ -154,14 +140,14 @@
               <th><button class="ordenar-coluna" data-sort="codigo">Código</button></th>
               <th><button class="ordenar-coluna" data-sort="tipo">Tipo</button></th>
               <th><button class="ordenar-coluna" data-sort="plataforma">Plataforma</button></th>
-              <th><button class="ordenar-coluna" data-sort="quantidade">Qtd.</button></th>
-              <th><button class="ordenar-coluna" data-sort="precoMedio">Preço médio</button></th>
-              <th><button class="ordenar-coluna" data-sort="valorAtual">Preço atual</button></th>
-              <th><button class="ordenar-coluna" data-sort="investido">Investido</button></th>
-              <th><button class="ordenar-coluna" data-sort="posicao">Posição</button></th>
-              <th><button class="ordenar-coluna" data-sort="resultado">Resultado</button></th>
-              <th><button class="ordenar-coluna" data-sort="rentabilidade">Rentab.</button></th>
-              <th><button class="ordenar-coluna" data-sort="peso">Peso</button></th>
+              <th class="num"><button class="ordenar-coluna" data-sort="quantidade">Qtd.</button></th>
+              <th class="num"><button class="ordenar-coluna" data-sort="precoMedio">Preço médio</button></th>
+              <th class="num"><button class="ordenar-coluna" data-sort="valorAtual">Preço atual</button></th>
+              <th class="num"><button class="ordenar-coluna" data-sort="investido">Investido</button></th>
+              <th class="num"><button class="ordenar-coluna" data-sort="posicao">Posição</button></th>
+              <th class="num"><button class="ordenar-coluna" data-sort="resultado">Resultado</button></th>
+              <th class="num"><button class="ordenar-coluna" data-sort="rentabilidade">Rentab.</button></th>
+              <th class="num"><button class="ordenar-coluna" data-sort="peso">Peso</button></th>
               <th><button class="ordenar-coluna" data-sort="situacao">Situação</button></th>
               <th><button class="ordenar-coluna" data-sort="observacao">Observação</button></th>
             </tr>
@@ -173,7 +159,7 @@
 
     <footer class="rodape">
       <span id="ultimaAtualizacao">Atualizado agora</span>
-      <p class="observacao" id="mensagemAtualizacao">Versão v15: planilha como fonte única, patrimônio consolidado em BRL e selo de origem dos dados.</p>
+      <p class="observacao" id="mensagemAtualizacao">Versão v16: tipografia financeira, cards de situação clicáveis e tabela agrupada por corretora.</p>
     </footer>
   </main>
 

@@ -1,25 +1,26 @@
 let ativos = window.CARTEIRA_AZ || [];
-let dadosAoVivo = false; // true quando a planilha Google carrega; false = fallback local
+let dadosAoVivo = false;       // true quando a planilha Google carrega
+let cambioVivo = 0;            // câmbio lido da aba Cambio; 0 = cai no config.js
+let situacaoSelecionada = "Todas"; // filtro acionado pelos cards de situação
 
 const corpoTabela = document.getElementById("corpoTabela");
 const filtroPlataforma = document.getElementById("filtroPlataforma");
-const filtroSituacao = document.getElementById("filtroSituacao");
 const buscaTabela = document.getElementById("buscaTabela");
 const botaoAtualizar = document.getElementById("botaoAtualizar");
+const botaoLimpar = document.getElementById("limparFiltros");
 const ultimaAtualizacao = document.getElementById("ultimaAtualizacao");
 const mensagemAtualizacao = document.getElementById("mensagemAtualizacao");
 const badgeOrigem = document.getElementById("badgeOrigem");
+const cartoesSituacao = Array.from(document.querySelectorAll(".cartao[data-situacao]"));
 
 let ordenacaoAtual = { campo: "padrao", direcao: "asc" };
 
-// Escapa texto antes de injetar na tabela (evita HTML/script vindo de qualquer campo)
+// Escapa texto antes de injetar na tabela
 function esc(valor) {
   return String(valor == null ? "" : valor).replace(/[&<>"']/g, c => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
   }[c]));
 }
-
-let cambioVivo = 0; // câmbio lido da aba Cambio da planilha; 0 = cai no config.js
 
 function cambioUSDBRL() {
   if (cambioVivo > 0) return cambioVivo;
@@ -56,25 +57,15 @@ function numero(valor) {
   if (texto.includes(",") && texto.includes(".")) {
     return Number(texto.replace(/\./g, "").replace(",", ".")) || 0;
   }
-
   if (texto.includes(",")) {
     return Number(texto.replace(",", ".")) || 0;
   }
-
   return Number(texto) || 0;
 }
 
-function valorInvestido(ativo) {
-  return numero(ativo.quantidade) * numero(ativo.precoMedio);
-}
-
-function valorPosicao(ativo) {
-  return numero(ativo.quantidade) * numero(ativo.valorAtual);
-}
-
-function resultadoFinanceiro(ativo) {
-  return valorPosicao(ativo) - valorInvestido(ativo);
-}
+function valorInvestido(ativo) { return numero(ativo.quantidade) * numero(ativo.precoMedio); }
+function valorPosicao(ativo) { return numero(ativo.quantidade) * numero(ativo.valorAtual); }
+function resultadoFinanceiro(ativo) { return valorPosicao(ativo) - valorInvestido(ativo); }
 
 function calcularRentabilidade(ativo) {
   return ((numero(ativo.valorAtual) - numero(ativo.precoMedio)) / numero(ativo.precoMedio)) * 100;
@@ -106,19 +97,11 @@ function enriquecerAtivos(lista) {
 
 function valorOrdenacao(ativo, campo) {
   const mapa = {
-    codigo: ativo.codigo,
-    tipo: ativo.tipo,
-    plataforma: ativo.plataforma,
-    quantidade: ativo.quantidade,
-    precoMedio: ativo.precoMedio,
-    valorAtual: ativo.valorAtual,
-    investido: ativo.investido,
-    posicao: ativo.posicao,
-    resultado: ativo.resultado,
-    rentabilidade: ativo.rentabilidade,
-    peso: ativo.peso,
-    situacao: ativo.situacao?.texto,
-    observacao: ativo.observacao
+    codigo: ativo.codigo, tipo: ativo.tipo, plataforma: ativo.plataforma,
+    quantidade: ativo.quantidade, precoMedio: ativo.precoMedio, valorAtual: ativo.valorAtual,
+    investido: ativo.investido, posicao: ativo.posicao, resultado: ativo.resultado,
+    rentabilidade: ativo.rentabilidade, peso: ativo.peso,
+    situacao: ativo.situacao?.texto, observacao: ativo.observacao
   };
   return mapa[campo];
 }
@@ -131,44 +114,35 @@ function compararValores(a, b, campo, direcao) {
   if (typeof valorA === "number" || typeof valorB === "number") {
     resultado = numero(valorA) - numero(valorB);
   } else {
-    resultado = String(valorA || "").localeCompare(String(valorB || ""), "pt-BR", {
-      sensitivity: "base",
-      numeric: true
-    });
+    resultado = String(valorA || "").localeCompare(String(valorB || ""), "pt-BR", { sensitivity: "base", numeric: true });
   }
-
   return direcao === "asc" ? resultado : -resultado;
 }
 
 function ordenarPadrao(a, b) {
-  const corretora = String(a.plataforma || "").localeCompare(String(b.plataforma || ""), "pt-BR", {
-    sensitivity: "base"
-  });
-
+  const corretora = String(a.plataforma || "").localeCompare(String(b.plataforma || ""), "pt-BR", { sensitivity: "base" });
   if (corretora !== 0) return corretora;
-
-  return String(a.codigo || "").localeCompare(String(b.codigo || ""), "pt-BR", {
-    sensitivity: "base",
-    numeric: true
-  });
+  return String(a.codigo || "").localeCompare(String(b.codigo || ""), "pt-BR", { sensitivity: "base", numeric: true });
 }
 
 function textoBuscaAtivo(ativo) {
   return [ativo.codigo, ativo.tipo, ativo.plataforma, ativo.pais, ativo.situacao?.texto, ativo.observacao]
-    .join(" ")
-    .toLowerCase();
+    .join(" ").toLowerCase();
 }
 
-function filtrarAtivos() {
+// Base = plataforma + busca (sem o filtro de situação). Alimenta os contadores dos cards.
+function listaBase() {
   const termo = (buscaTabela?.value || "").trim().toLowerCase();
-
-  const lista = enriquecerAtivos(ativos)
+  return enriquecerAtivos(ativos)
     .filter(a => filtroPlataforma.value === "Todas" || a.plataforma === filtroPlataforma.value)
-    .filter(a => filtroSituacao.value === "Todas" || a.situacao.texto === filtroSituacao.value)
     .filter(a => !termo || textoBuscaAtivo(a).includes(termo));
+}
+
+function listaParaTabela() {
+  const lista = listaBase()
+    .filter(a => situacaoSelecionada === "Todas" || a.situacao.texto === situacaoSelecionada);
 
   if (ordenacaoAtual.campo === "padrao") return lista.sort(ordenarPadrao);
-
   return lista.sort((a, b) => compararValores(a, b, ordenacaoAtual.campo, ordenacaoAtual.direcao));
 }
 
@@ -176,28 +150,29 @@ function atualizarIndicadorOrdenacao() {
   document.querySelectorAll(".ordenar-coluna").forEach(botao => {
     const campo = botao.dataset.sort;
     botao.classList.remove("ativo", "asc", "desc");
-
-    if (campo === ordenacaoAtual.campo) {
-      botao.classList.add("ativo", ordenacaoAtual.direcao);
-    }
+    if (campo === ordenacaoAtual.campo) botao.classList.add("ativo", ordenacaoAtual.direcao);
   });
 }
 
 function atualizarCartoes(lista) {
-  const t = { comprar:0, vender:0, atencao:0, neutra:0 };
-
+  const t = { comprar: 0, vender: 0, atencao: 0, neutra: 0 };
   lista.forEach(a => {
-    const s = definirSituacao(a).texto;
+    const s = a.situacao.texto;
     if (s === "Comprar") t.comprar++;
     if (s === "Venda parcial") t.vender++;
     if (s === "Atenção") t.atencao++;
     if (s === "Neutra") t.neutra++;
   });
-
   document.getElementById("totalComprar").textContent = t.comprar;
   document.getElementById("totalVender").textContent = t.vender;
   document.getElementById("totalAtencao").textContent = t.atencao;
   document.getElementById("totalNeutras").textContent = t.neutra;
+}
+
+function atualizarCartoesAtivos() {
+  cartoesSituacao.forEach(card => {
+    card.setAttribute("aria-pressed", card.dataset.situacao === situacaoSelecionada ? "true" : "false");
+  });
 }
 
 function resumoPorPais(lista, brasil) {
@@ -212,9 +187,7 @@ function resumoPorPais(lista, brasil) {
 function atualizarCampo(id, valor, tipo) {
   const el = document.getElementById(id);
   if (!el) return;
-
   el.textContent = tipo === "%" ? formatarPercentual(valor) : formatarMoedaPorCodigo(valor, tipo);
-
   if (id.includes("resultado") || id.includes("rentabilidade")) {
     el.className = valor >= 0 ? "positivo" : "negativo";
   }
@@ -237,7 +210,6 @@ function atualizarResumoFinanceiro(lista) {
   return { eua, brasil };
 }
 
-// Consolida EUA (em USD) + Brasil (em BRL) num único patrimônio em reais.
 function atualizarHeroConsolidado(eua, brasil) {
   const cambio = cambioUSDBRL();
   const euaEmBRL = eua.atual * cambio;
@@ -266,14 +238,12 @@ function atualizarHeroConsolidado(eua, brasil) {
 
   const elResultado = document.getElementById("patrimonioResultado");
   const sinal = resultado >= 0 ? "+" : "";
-  elResultado.textContent =
-    `${sinal}${formatarMoedaPorCodigo(resultado, "BRL")}  (${sinal}${formatarPercentual(rentab)})`;
+  elResultado.textContent = `${sinal}${formatarMoedaPorCodigo(resultado, "BRL")}  (${sinal}${formatarPercentual(rentab)})`;
   elResultado.className = `hero-resultado ${resultado >= 0 ? "positivo" : "negativo"}`;
 }
 
 function atualizarBadgeOrigem() {
   if (!badgeOrigem) return;
-
   if (dadosAoVivo) {
     badgeOrigem.textContent = "Ao vivo · planilha";
     badgeOrigem.className = "badge-origem aovivo";
@@ -284,38 +254,71 @@ function atualizarBadgeOrigem() {
   }
 }
 
+function atualizarBotaoLimpar() {
+  if (!botaoLimpar) return;
+  const ativo = situacaoSelecionada !== "Todas"
+    || filtroPlataforma.value !== "Todas"
+    || (buscaTabela?.value || "").trim() !== "";
+  botaoLimpar.hidden = !ativo;
+}
+
+function celulaGrupo(plataforma, qtd, totalPos, moeda) {
+  const tr = document.createElement("tr");
+  tr.className = "grupo";
+  tr.innerHTML = `<td colspan="13"><div class="grupo-conteudo">
+    <span class="grupo-nome">${esc(plataforma)}</span>
+    <span class="grupo-meta">${qtd} ${qtd === 1 ? "ativo" : "ativos"} · ${formatarMoedaPorCodigo(totalPos, moeda)}</span>
+  </div></td>`;
+  return tr;
+}
+
 function renderizarTabela() {
-  const lista = filtrarAtivos();
+  const lista = listaParaTabela();
   corpoTabela.innerHTML = "";
 
+  const agrupar = ordenacaoAtual.campo === "padrao";
+  let plataformaAtual = null;
+
   lista.forEach(a => {
+    if (agrupar && a.plataforma !== plataformaAtual) {
+      plataformaAtual = a.plataforma;
+      const doGrupo = lista.filter(x => x.plataforma === plataformaAtual);
+      const totalPos = doGrupo.reduce((s, x) => s + x.posicao, 0);
+      const moeda = doGrupo[0].pais === "Brasil" ? "BRL" : "USD";
+      corpoTabela.appendChild(celulaGrupo(plataformaAtual, doGrupo.length, totalPos, moeda));
+    }
+
     const tr = document.createElement("tr");
-    const classeRentabilidade = a.rentabilidade >= 0 ? "positiva" : "negativa";
-    const classeResultado = a.resultado >= 0 ? "positiva" : "negativa";
+    tr.className = "dado";
+    const classeRent = a.rentabilidade >= 0 ? "positiva" : "negativa";
+    const classeRes = a.resultado >= 0 ? "positiva" : "negativa";
 
     tr.innerHTML = `
       <td class="codigo">${esc(a.codigo)}</td>
       <td><span class="tipo-ativo">${esc(a.tipo || "-")}</span></td>
       <td><span class="plataforma">${esc(a.plataforma)}</span></td>
-      <td>${formatarNumero(a.quantidade)}</td>
-      <td>${formatarMoeda(a.precoMedio, a)}</td>
-      <td>${formatarMoeda(a.valorAtual, a)}</td>
-      <td>${formatarMoeda(a.investido, a)}</td>
-      <td>${formatarMoeda(a.posicao, a)}</td>
-      <td class="rentabilidade ${classeResultado}">${formatarMoeda(a.resultado, a)}</td>
-      <td class="rentabilidade ${classeRentabilidade}">${formatarPercentual(a.rentabilidade)}</td>
-      <td>${formatarPercentual(a.peso)}</td>
+      <td class="num">${formatarNumero(a.quantidade)}</td>
+      <td class="num">${formatarMoeda(a.precoMedio, a)}</td>
+      <td class="num">${formatarMoeda(a.valorAtual, a)}</td>
+      <td class="num">${formatarMoeda(a.investido, a)}</td>
+      <td class="num">${formatarMoeda(a.posicao, a)}</td>
+      <td class="num rentabilidade ${classeRes}">${formatarMoeda(a.resultado, a)}</td>
+      <td class="num rentabilidade ${classeRent}">${formatarPercentual(a.rentabilidade)}</td>
+      <td class="num">${formatarPercentual(a.peso)}</td>
       <td><span class="situacao ${a.situacao.classe}">${esc(a.situacao.texto)}</span></td>
       <td class="observacao-tabela" title="${esc(a.observacao || "")}">${esc(a.observacao || "")}</td>`;
 
     corpoTabela.appendChild(tr);
   });
 
-  atualizarCartoes(ativos);
+  const base = listaBase();
+  atualizarCartoes(base);
   const { eua, brasil } = atualizarResumoFinanceiro(ativos);
   atualizarHeroConsolidado(eua, brasil);
   atualizarBadgeOrigem();
+  atualizarCartoesAtivos();
   atualizarIndicadorOrdenacao();
+  atualizarBotaoLimpar();
 }
 
 function atualizarData() {
@@ -335,7 +338,6 @@ function valorCelula(celula) {
 
 function mapearLinhaGoogle(linha) {
   const c = linha.c || [];
-
   return {
     codigo: String(valorCelula(c[0])).trim(),
     plataforma: String(valorCelula(c[1])).trim(),
@@ -350,7 +352,7 @@ function mapearLinhaGoogle(linha) {
   };
 }
 
-// Lê o câmbio ao vivo da aba Cambio (1ª célula com número > 0). Devolve 0 se não achar.
+// Câmbio ao vivo da aba Cambio (1ª célula com número > 0). 0 se não achar.
 async function carregarCambio() {
   const cfg = window.AZ_CONFIG || {};
   if (!cfg.GOOGLE_SHEET_ID) return 0;
@@ -362,7 +364,6 @@ async function carregarCambio() {
 
   const json = JSON.parse(limparRespostaGoogle(await resp.text()));
   const linhas = (json.table && json.table.rows) || [];
-
   for (const linha of linhas) {
     for (const celula of (linha.c || [])) {
       const v = numero(valorCelula(celula));
@@ -378,7 +379,6 @@ async function carregarGoogleSheets() {
 
   const url = `https://docs.google.com/spreadsheets/d/${cfg.GOOGLE_SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(cfg.SHEET_NAME || "Dados")}`;
   const resp = await fetch(url);
-
   if (!resp.ok) throw new Error("Não consegui acessar a planilha.");
 
   const json = JSON.parse(limparRespostaGoogle(await resp.text()));
@@ -387,7 +387,6 @@ async function carregarGoogleSheets() {
     .filter(a => a.codigo && a.plataforma && a.pais && a.tipo && a.precoMedio > 0 && a.valorAtual > 0);
 
   if (!novos.length) throw new Error("A planilha não retornou ativos válidos.");
-
   ativos = novos;
   return true;
 }
@@ -399,7 +398,6 @@ async function atualizarDados() {
   mensagemAtualizacao.className = "observacao";
 
   try {
-    // Câmbio ao vivo (opcional): nunca derruba o resto se a aba não existir.
     try {
       const c = await carregarCambio();
       cambioVivo = c > 0 ? c : 0;
@@ -420,7 +418,7 @@ async function atualizarDados() {
       mensagemAtualizacao.textContent = "Google Sheets ainda não configurado. Usando carteira local.";
       mensagemAtualizacao.className = "observacao";
     }
-  } catch(e) {
+  } catch (e) {
     console.error(e);
     dadosAoVivo = false;
     renderizarTabela();
@@ -433,24 +431,36 @@ async function atualizarDados() {
   botaoAtualizar.textContent = "Atualizar dados";
 }
 
+// Eventos
 document.querySelectorAll(".ordenar-coluna").forEach(botao => {
   botao.addEventListener("click", () => {
     const campo = botao.dataset.sort;
-
     if (ordenacaoAtual.campo === campo) {
       ordenacaoAtual.direcao = ordenacaoAtual.direcao === "asc" ? "desc" : "asc";
     } else {
       ordenacaoAtual = { campo, direcao: "asc" };
     }
+    renderizarTabela();
+  });
+});
 
+cartoesSituacao.forEach(card => {
+  card.addEventListener("click", () => {
+    const s = card.dataset.situacao;
+    situacaoSelecionada = (situacaoSelecionada === s) ? "Todas" : s;
     renderizarTabela();
   });
 });
 
 filtroPlataforma.addEventListener("change", renderizarTabela);
-filtroSituacao.addEventListener("change", renderizarTabela);
 buscaTabela?.addEventListener("input", renderizarTabela);
 botaoAtualizar.addEventListener("click", atualizarDados);
+botaoLimpar?.addEventListener("click", () => {
+  situacaoSelecionada = "Todas";
+  filtroPlataforma.value = "Todas";
+  if (buscaTabela) buscaTabela.value = "";
+  renderizarTabela();
+});
 
 renderizarTabela();
 atualizarData();
