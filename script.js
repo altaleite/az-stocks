@@ -21,7 +21,7 @@ const barraEdicao = document.getElementById("barraEdicao");
 const botaoAdicionar = document.getElementById("botaoAdicionar");
 const botaoExportar = document.getElementById("botaoExportar");
 const inputImportar = document.getElementById("inputImportar");
-const botaoImportarPlanilha = document.getElementById("botaoImportarPlanilha");
+const botaoAtualizarPrecos = document.getElementById("botaoAtualizarPrecos");
 
 // Modal
 const modalAtivo = document.getElementById("modalAtivo");
@@ -483,46 +483,86 @@ function importarBackup(file) {
   reader.readAsText(file);
 }
 
-/* ---------- Importar da planilha (migração opcional) ---------- */
+/* ---------- Atualizar preços da planilha (tabela código + valorAtual) ---------- */
 function limparRespostaGoogle(t) { return t.replace(/^.*google\.visualization\.Query\.setResponse\(/s, "").replace(/\);?\s*$/s, ""); }
 function valorCelula(c) { if (!c) return ""; if (c.v !== undefined) return c.v; if (c.f !== undefined) return c.f; return ""; }
-function mapearLinhaGoogle(linha) {
-  const c = linha.c || [];
-  return {
-    codigo: String(valorCelula(c[0])).trim(),
-    plataforma: String(valorCelula(c[1])).trim(),
-    pais: String(valorCelula(c[2])).trim(),
-    tipo: String(valorCelula(c[3])).trim(),
-    quantidade: numero(valorCelula(c[4])),
-    precoMedio: numero(valorCelula(c[5])),
-    valorAtual: numero(valorCelula(c[6])),
-    compra: numero(valorCelula(c[7])),
-    venda: numero(valorCelula(c[8])),
-    observacao: String(valorCelula(c[9])).trim()
-  };
+
+function normalizarTexto(s) {
+  return String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "");
 }
 
-async function importarDaPlanilha() {
-  const cfg = window.AZ_CONFIG || {};
-  if (!cfg.GOOGLE_SHEET_ID) { mensagem("Planilha não configurada.", "erro"); return; }
-  if (!confirm("Isso substitui sua carteira local pelos dados atuais da planilha. Continuar?")) return;
+function acharColuna(cols, candidatos, indicePadrao) {
+  for (let i = 0; i < cols.length; i++) {
+    const rotulo = normalizarTexto(cols[i] && cols[i].label);
+    if (rotulo && candidatos.some(c => rotulo.includes(c))) return i;
+  }
+  return indicePadrao;
+}
 
-  mensagem("Importando da planilha...", "");
+async function carregarPrecosPlanilha() {
+  const cfg = window.AZ_CONFIG || {};
+  if (!cfg.GOOGLE_SHEET_ID) throw new Error("sem id");
+
+  const base = `https://docs.google.com/spreadsheets/d/${cfg.GOOGLE_SHEET_ID}/gviz/tq?tqx=out:json`;
+  const url = cfg.GOOGLE_SHEET_GID
+    ? `${base}&gid=${encodeURIComponent(cfg.GOOGLE_SHEET_GID)}`
+    : `${base}&sheet=${encodeURIComponent(cfg.SHEET_NAME || "Dados")}`;
+
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error("http");
+
+  const json = JSON.parse(limparRespostaGoogle(await resp.text()));
+  const cols = (json.table && json.table.cols) || [];
+  const rows = (json.table && json.table.rows) || [];
+
+  const idxCod = acharColuna(cols, ["codigo", "ticker", "ativo"], 0);
+  const idxPreco = acharColuna(cols, ["valoratual", "valor", "preco", "price", "cotacao"], cols.length - 1);
+
+  const mapa = {};
+  rows.forEach(linha => {
+    const c = linha.c || [];
+    const cod = String(valorCelula(c[idxCod])).trim().toUpperCase();
+    const preco = numero(valorCelula(c[idxPreco]));
+    if (cod && preco > 0) mapa[cod] = preco;
+  });
+  return mapa;
+}
+
+async function atualizarPrecos(silencioso = false) {
+  if (botaoAtualizarPrecos && !silencioso) {
+    botaoAtualizarPrecos.disabled = true;
+    botaoAtualizarPrecos.textContent = "Atualizando...";
+    mensagem("Buscando preços na planilha...", "");
+  }
+
   try {
-    const url = `https://docs.google.com/spreadsheets/d/${cfg.GOOGLE_SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(cfg.SHEET_NAME || "Dados")}`;
-    const resp = await fetch(url);
-    if (!resp.ok) throw new Error("http");
-    const json = JSON.parse(limparRespostaGoogle(await resp.text()));
-    const novos = (json.table.rows || []).map(mapearLinhaGoogle)
-      .filter(a => a.codigo && a.plataforma && a.pais && a.tipo && a.precoMedio > 0 && a.valorAtual > 0);
-    if (!novos.length) throw new Error("vazio");
-    ativos = normalizarLista(novos);
+    const mapa = await carregarPrecosPlanilha();
+    let atualizados = 0;
+    const naoEncontrados = [];
+
+    ativos.forEach(a => {
+      const cod = String(a.codigo || "").trim().toUpperCase();
+      if (mapa[cod] != null) { a.valorAtual = mapa[cod]; atualizados++; }
+      else naoEncontrados.push(a.codigo);
+    });
+
     salvarLocal();
     renderizarTabela();
     atualizarData();
-    mensagem(`Importado da planilha • ${ativos.length} ativos.`, "sucesso");
+
+    if (!silencioso) {
+      const faltando = [...new Set(naoEncontrados)];
+      let msg = `Preços atualizados • ${atualizados} ${atualizados === 1 ? "ativo" : "ativos"}.`;
+      if (faltando.length) msg += ` Sem preço na planilha: ${faltando.join(", ")}.`;
+      mensagem(msg, faltando.length ? "" : "sucesso");
+    }
   } catch (e) {
-    mensagem("Não consegui ler a planilha (verifique se está pública).", "erro");
+    if (!silencioso) mensagem("Não consegui ler os preços da planilha (verifique se ela está pública).", "erro");
+  }
+
+  if (botaoAtualizarPrecos && !silencioso) {
+    botaoAtualizarPrecos.disabled = false;
+    botaoAtualizarPrecos.textContent = "Atualizar preços";
   }
 }
 
@@ -573,8 +613,9 @@ document.addEventListener("keydown", e => { if (e.key === "Escape" && !modalAtiv
 
 botaoExportar?.addEventListener("click", exportarBackup);
 inputImportar?.addEventListener("change", e => { if (e.target.files[0]) { importarBackup(e.target.files[0]); e.target.value = ""; } });
-botaoImportarPlanilha?.addEventListener("click", importarDaPlanilha);
+botaoAtualizarPrecos?.addEventListener("click", atualizarPrecos);
 
 inicializarDados();
 renderizarTabela();
 atualizarData();
+atualizarPrecos(true); // tenta atualizar preços ao abrir, sem incomodar se falhar
