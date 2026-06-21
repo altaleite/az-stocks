@@ -1,22 +1,52 @@
-let ativos = window.CARTEIRA_AZ || [];
-let dadosAoVivo = false;       // true quando a planilha Google carrega
-let cambioVivo = 0;            // câmbio lido da aba Cambio; 0 = cai no config.js
-let situacaoSelecionada = "Todas"; // filtro acionado pelos cards de situação
+let ativos = [];
+let situacaoSelecionada = "Todas";
+let modoEdicao = false;
+let editandoId = null;
+
+const STORAGE_KEY = "az_stocks_v18";
 
 const corpoTabela = document.getElementById("corpoTabela");
 const filtroPlataforma = document.getElementById("filtroPlataforma");
 const filtroTipo = document.getElementById("filtroTipo");
 const contadorAtivos = document.getElementById("contadorAtivos");
-const botaoAtualizar = document.getElementById("botaoAtualizar");
 const botaoLimpar = document.getElementById("limparFiltros");
 const ultimaAtualizacao = document.getElementById("ultimaAtualizacao");
 const mensagemAtualizacao = document.getElementById("mensagemAtualizacao");
 const badgeOrigem = document.getElementById("badgeOrigem");
 const cartoesSituacao = Array.from(document.querySelectorAll(".cartao[data-situacao]"));
 
+// Edição
+const botaoEditar = document.getElementById("botaoEditar");
+const barraEdicao = document.getElementById("barraEdicao");
+const botaoAdicionar = document.getElementById("botaoAdicionar");
+const botaoExportar = document.getElementById("botaoExportar");
+const inputImportar = document.getElementById("inputImportar");
+const botaoImportarPlanilha = document.getElementById("botaoImportarPlanilha");
+
+// Modal
+const modalAtivo = document.getElementById("modalAtivo");
+const tituloForm = document.getElementById("tituloForm");
+const formErro = document.getElementById("formErro");
+const botaoSalvar = document.getElementById("botaoSalvar");
+const botaoCancelar = document.getElementById("botaoCancelar");
+const botaoExcluir = document.getElementById("botaoExcluir");
+const listaPlataformas = document.getElementById("lista_plataformas");
+const F = {
+  codigo: document.getElementById("f_codigo"),
+  nome: document.getElementById("f_nome"),
+  tipo: document.getElementById("f_tipo"),
+  plataforma: document.getElementById("f_plataforma"),
+  pais: document.getElementById("f_pais"),
+  quantidade: document.getElementById("f_quantidade"),
+  precoMedio: document.getElementById("f_precoMedio"),
+  valorAtual: document.getElementById("f_valorAtual"),
+  compra: document.getElementById("f_compra"),
+  venda: document.getElementById("f_venda"),
+  observacao: document.getElementById("f_observacao")
+};
+
 let ordenacaoAtual = { campo: "padrao", direcao: "asc" };
 
-// Escapa texto antes de injetar na tabela
 function esc(valor) {
   return String(valor == null ? "" : valor).replace(/[&<>"']/g, c => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
@@ -24,71 +54,48 @@ function esc(valor) {
 }
 
 function cambioUSDBRL() {
-  if (cambioVivo > 0) return cambioVivo;
   const c = Number((window.AZ_CONFIG || {}).USD_BRL);
   return c > 0 ? c : 0;
 }
 
-function moedaDoAtivo(ativo) {
-  return ativo.pais === "Brasil" ? "BRL" : "USD";
+function nomeAtivo(a) {
+  if (a && typeof a === "object" && a.nome) return a.nome;
+  const mapa = window.NOMES_ATIVOS || {};
+  const cod = (a && typeof a === "object") ? a.codigo : a;
+  return mapa[cod] || "";
 }
 
-function formatarMoedaPorCodigo(valor, currency) {
-  return Number(valor).toLocaleString("pt-BR", { style: "currency", currency });
-}
-
-function formatarMoeda(valor, ativo) {
-  return formatarMoedaPorCodigo(valor, moedaDoAtivo(ativo));
-}
-
-function formatarNumero(valor) {
-  return Number(valor).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 5 });
-}
-
-function formatarPercentual(valor) {
-  return `${Number(valor).toFixed(2).replace(".", ",")}%`;
-}
+function moedaDoAtivo(ativo) { return ativo.pais === "Brasil" ? "BRL" : "USD"; }
+function formatarMoedaPorCodigo(valor, currency) { return Number(valor).toLocaleString("pt-BR", { style: "currency", currency }); }
+function formatarMoeda(valor, ativo) { return formatarMoedaPorCodigo(valor, moedaDoAtivo(ativo)); }
+function formatarNumero(valor) { return Number(valor).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 5 }); }
+function formatarPercentual(valor) { return `${Number(valor).toFixed(2).replace(".", ",")}%`; }
 
 function numero(valor) {
   if (typeof valor === "number") return valor;
   if (valor === null || valor === undefined) return 0;
-
   const texto = String(valor).trim().replace("R$", "").replace("US$", "").replace(/\s/g, "");
-
-  if (texto.includes(",") && texto.includes(".")) {
-    return Number(texto.replace(/\./g, "").replace(",", ".")) || 0;
-  }
-  if (texto.includes(",")) {
-    return Number(texto.replace(",", ".")) || 0;
-  }
+  if (texto.includes(",") && texto.includes(".")) return Number(texto.replace(/\./g, "").replace(",", ".")) || 0;
+  if (texto.includes(",")) return Number(texto.replace(",", ".")) || 0;
   return Number(texto) || 0;
 }
 
-function valorInvestido(ativo) { return numero(ativo.quantidade) * numero(ativo.precoMedio); }
-function valorPosicao(ativo) { return numero(ativo.quantidade) * numero(ativo.valorAtual); }
-function resultadoFinanceiro(ativo) { return valorPosicao(ativo) - valorInvestido(ativo); }
+function valorInvestido(a) { return numero(a.quantidade) * numero(a.precoMedio); }
+function valorPosicao(a) { return numero(a.quantidade) * numero(a.valorAtual); }
+function resultadoFinanceiro(a) { return valorPosicao(a) - valorInvestido(a); }
+function calcularRentabilidade(a) { return ((numero(a.valorAtual) - numero(a.precoMedio)) / numero(a.precoMedio)) * 100; }
 
-function calcularRentabilidade(ativo) {
-  return ((numero(ativo.valorAtual) - numero(ativo.precoMedio)) / numero(ativo.precoMedio)) * 100;
-}
-
-function definirSituacao(ativo) {
-  const r = calcularRentabilidade(ativo);
+function definirSituacao(a) {
+  const r = calcularRentabilidade(a);
   if (r <= -30) return { texto: "Atenção", classe: "atencao" };
-  if (r <= -numero(ativo.compra)) return { texto: "Comprar", classe: "comprar" };
-  if (r >= numero(ativo.venda)) return { texto: "Venda parcial", classe: "vender" };
+  if (r <= -numero(a.compra)) return { texto: "Comprar", classe: "comprar" };
+  if (r >= numero(a.venda)) return { texto: "Venda parcial", classe: "vender" };
   return { texto: "Neutra", classe: "neutra" };
 }
 
-function nomeAtivo(codigo) {
-  const mapa = window.NOMES_ATIVOS || {};
-  return mapa[codigo] || "";
-}
-
 function enriquecerAtivos(lista) {
-  const totalUSD = lista.filter(a => a.pais !== "Brasil").reduce((soma, a) => soma + valorPosicao(a), 0);
-  const totalBRL = lista.filter(a => a.pais === "Brasil").reduce((soma, a) => soma + valorPosicao(a), 0);
-
+  const totalUSD = lista.filter(a => a.pais !== "Brasil").reduce((s, a) => s + valorPosicao(a), 0);
+  const totalBRL = lista.filter(a => a.pais === "Brasil").reduce((s, a) => s + valorPosicao(a), 0);
   return lista.map(ativo => {
     const investido = valorInvestido(ativo);
     const posicao = valorPosicao(ativo);
@@ -97,42 +104,34 @@ function enriquecerAtivos(lista) {
     const situacao = definirSituacao(ativo);
     const totalMoeda = ativo.pais === "Brasil" ? totalBRL : totalUSD;
     const peso = totalMoeda > 0 ? (posicao / totalMoeda) * 100 : 0;
-    const nome = nomeAtivo(ativo.codigo);
-    return { ...ativo, investido, posicao, resultado, rentabilidade, situacao, peso, nome };
+    return { ...ativo, investido, posicao, resultado, rentabilidade, situacao, peso, nome: nomeAtivo(ativo) };
   });
 }
 
-function valorOrdenacao(ativo, campo) {
+function valorOrdenacao(a, campo) {
   const mapa = {
-    codigo: ativo.codigo, nome: ativo.nome, tipo: ativo.tipo, plataforma: ativo.plataforma,
-    quantidade: ativo.quantidade, precoMedio: ativo.precoMedio, valorAtual: ativo.valorAtual,
-    investido: ativo.investido, posicao: ativo.posicao, resultado: ativo.resultado,
-    rentabilidade: ativo.rentabilidade, peso: ativo.peso,
-    situacao: ativo.situacao?.texto, observacao: ativo.observacao
+    codigo: a.codigo, nome: a.nome, tipo: a.tipo, plataforma: a.plataforma,
+    quantidade: a.quantidade, precoMedio: a.precoMedio, valorAtual: a.valorAtual,
+    investido: a.investido, posicao: a.posicao, resultado: a.resultado,
+    rentabilidade: a.rentabilidade, peso: a.peso, situacao: a.situacao?.texto, observacao: a.observacao
   };
   return mapa[campo];
 }
 
 function compararValores(a, b, campo, direcao) {
-  const valorA = valorOrdenacao(a, campo);
-  const valorB = valorOrdenacao(b, campo);
-  let resultado = 0;
-
-  if (typeof valorA === "number" || typeof valorB === "number") {
-    resultado = numero(valorA) - numero(valorB);
-  } else {
-    resultado = String(valorA || "").localeCompare(String(valorB || ""), "pt-BR", { sensitivity: "base", numeric: true });
-  }
-  return direcao === "asc" ? resultado : -resultado;
+  const vA = valorOrdenacao(a, campo), vB = valorOrdenacao(b, campo);
+  let r = 0;
+  if (typeof vA === "number" || typeof vB === "number") r = numero(vA) - numero(vB);
+  else r = String(vA || "").localeCompare(String(vB || ""), "pt-BR", { sensitivity: "base", numeric: true });
+  return direcao === "asc" ? r : -r;
 }
 
 function ordenarPadrao(a, b) {
-  const corretora = String(a.plataforma || "").localeCompare(String(b.plataforma || ""), "pt-BR", { sensitivity: "base" });
-  if (corretora !== 0) return corretora;
+  const c = String(a.plataforma || "").localeCompare(String(b.plataforma || ""), "pt-BR", { sensitivity: "base" });
+  if (c !== 0) return c;
   return String(a.codigo || "").localeCompare(String(b.codigo || ""), "pt-BR", { sensitivity: "base", numeric: true });
 }
 
-// Base = plataforma + tipo (sem o filtro de situação). Alimenta os contadores dos cards.
 function listaBase() {
   return enriquecerAtivos(ativos)
     .filter(a => filtroPlataforma.value === "Todas" || a.plataforma === filtroPlataforma.value)
@@ -140,9 +139,7 @@ function listaBase() {
 }
 
 function listaParaTabela() {
-  const lista = listaBase()
-    .filter(a => situacaoSelecionada === "Todas" || a.situacao.texto === situacaoSelecionada);
-
+  const lista = listaBase().filter(a => situacaoSelecionada === "Todas" || a.situacao.texto === situacaoSelecionada);
   if (ordenacaoAtual.campo === "padrao") return lista.sort(ordenarPadrao);
   return lista.sort((a, b) => compararValores(a, b, ordenacaoAtual.campo, ordenacaoAtual.direcao));
 }
@@ -171,15 +168,13 @@ function atualizarCartoes(lista) {
 }
 
 function atualizarCartoesAtivos() {
-  cartoesSituacao.forEach(card => {
-    card.setAttribute("aria-pressed", card.dataset.situacao === situacaoSelecionada ? "true" : "false");
-  });
+  cartoesSituacao.forEach(card => card.setAttribute("aria-pressed", card.dataset.situacao === situacaoSelecionada ? "true" : "false"));
 }
 
 function resumoPorPais(lista, brasil) {
-  const filtrados = lista.filter(a => brasil ? a.pais === "Brasil" : a.pais !== "Brasil");
-  const investido = filtrados.reduce((soma, a) => soma + valorInvestido(a), 0);
-  const atual = filtrados.reduce((soma, a) => soma + valorPosicao(a), 0);
+  const f = lista.filter(a => brasil ? a.pais === "Brasil" : a.pais !== "Brasil");
+  const investido = f.reduce((s, a) => s + valorInvestido(a), 0);
+  const atual = f.reduce((s, a) => s + valorPosicao(a), 0);
   const resultado = atual - investido;
   const rentabilidade = investido > 0 ? (resultado / investido) * 100 : 0;
   return { investido, atual, resultado, rentabilidade };
@@ -189,25 +184,20 @@ function atualizarCampo(id, valor, tipo) {
   const el = document.getElementById(id);
   if (!el) return;
   el.textContent = tipo === "%" ? formatarPercentual(valor) : formatarMoedaPorCodigo(valor, tipo);
-  if (id.includes("resultado") || id.includes("rentabilidade")) {
-    el.className = valor >= 0 ? "positivo" : "negativo";
-  }
+  if (id.includes("resultado") || id.includes("rentabilidade")) el.className = valor >= 0 ? "positivo" : "negativo";
 }
 
 function atualizarResumoFinanceiro(lista) {
   const eua = resumoPorPais(lista, false);
   const brasil = resumoPorPais(lista, true);
-
   atualizarCampo("valorInvestidoEUA", eua.investido, "USD");
   atualizarCampo("valorAtualEUA", eua.atual, "USD");
   atualizarCampo("resultadoEUA", eua.resultado, "USD");
   atualizarCampo("rentabilidadeEUA", eua.rentabilidade, "%");
-
   atualizarCampo("valorInvestidoBrasil", brasil.investido, "BRL");
   atualizarCampo("valorAtualBrasil", brasil.atual, "BRL");
   atualizarCampo("resultadoBrasil", brasil.resultado, "BRL");
   atualizarCampo("rentabilidadeBrasil", brasil.rentabilidade, "%");
-
   return { eua, brasil };
 }
 
@@ -215,7 +205,6 @@ function atualizarHeroConsolidado(eua, brasil) {
   const cambio = cambioUSDBRL();
   const euaEmBRL = eua.atual * cambio;
   const investidoEUAEmBRL = eua.investido * cambio;
-
   const patrimonio = euaEmBRL + brasil.atual;
   const investidoTotal = investidoEUAEmBRL + brasil.investido;
   const resultado = patrimonio - investidoTotal;
@@ -225,56 +214,37 @@ function atualizarHeroConsolidado(eua, brasil) {
   document.getElementById("patrimonioEUA").textContent = formatarMoedaPorCodigo(euaEmBRL, "BRL");
   document.getElementById("patrimonioBrasil").textContent = formatarMoedaPorCodigo(brasil.atual, "BRL");
 
+  const cambioData = (window.AZ_CONFIG || {}).USD_BRL_DATA;
   const cambioTexto = cambio > 0 ? `R$ ${cambio.toFixed(2).replace(".", ",")}` : "—";
-  let sufixo = "";
-  if (cambio > 0) {
-    if (cambioVivo > 0) {
-      sufixo = " · ao vivo";
-    } else {
-      const cambioData = (window.AZ_CONFIG || {}).USD_BRL_DATA;
-      sufixo = cambioData ? " · " + cambioData : " · config";
-    }
-  }
-  document.getElementById("cambioInfo").textContent = cambioTexto + sufixo;
+  document.getElementById("cambioInfo").textContent = cambio > 0 && cambioData ? `${cambioTexto} · ${cambioData}` : cambioTexto;
 
-  const elResultado = document.getElementById("patrimonioResultado");
+  const el = document.getElementById("patrimonioResultado");
   const sinal = resultado >= 0 ? "+" : "";
-  elResultado.textContent = `${sinal}${formatarMoedaPorCodigo(resultado, "BRL")}  (${sinal}${formatarPercentual(rentab)})`;
-  elResultado.className = `hero-resultado ${resultado >= 0 ? "positivo" : "negativo"}`;
+  el.textContent = `${sinal}${formatarMoedaPorCodigo(resultado, "BRL")}  (${sinal}${formatarPercentual(rentab)})`;
+  el.className = `hero-resultado ${resultado >= 0 ? "positivo" : "negativo"}`;
 }
 
 function atualizarBadgeOrigem() {
   if (!badgeOrigem) return;
-  if (dadosAoVivo) {
-    badgeOrigem.textContent = "Ao vivo · planilha";
-    badgeOrigem.className = "badge-origem aovivo";
-  } else {
-    const snap = window.CARTEIRA_AZ_SNAPSHOT;
-    badgeOrigem.textContent = snap ? `Local · snapshot de ${snap}` : "Local · carteira.js";
-    badgeOrigem.className = "badge-origem local";
-  }
+  badgeOrigem.textContent = `Salvo neste navegador · ${ativos.length} ${ativos.length === 1 ? "ativo" : "ativos"}`;
+  badgeOrigem.className = "badge-origem salvo";
 }
 
 function atualizarBotaoLimpar() {
   if (!botaoLimpar) return;
-  const ativo = situacaoSelecionada !== "Todas"
-    || filtroPlataforma.value !== "Todas"
-    || filtroTipo.value !== "Todos";
-  botaoLimpar.hidden = !ativo;
+  botaoLimpar.hidden = !(situacaoSelecionada !== "Todas" || filtroPlataforma.value !== "Todas" || filtroTipo.value !== "Todos");
 }
 
-function atualizarContador(qtdMostrada) {
+function atualizarContador(qtd) {
   if (!contadorAtivos) return;
   const total = ativos.length;
-  contadorAtivos.textContent = qtdMostrada === total
-    ? `${total} ativos`
-    : `Mostrando ${qtdMostrada} de ${total} ativos`;
+  contadorAtivos.textContent = qtd === total ? `${total} ativos` : `Mostrando ${qtd} de ${total} ativos`;
 }
 
 function celulaGrupo(plataforma, qtd, totalPos, moeda) {
   const tr = document.createElement("tr");
   tr.className = "grupo";
-  tr.innerHTML = `<td colspan="13"><div class="grupo-conteudo">
+  tr.innerHTML = `<td colspan="14"><div class="grupo-conteudo">
     <span class="grupo-nome">${esc(plataforma)}</span>
     <span class="grupo-meta">${qtd} ${qtd === 1 ? "ativo" : "ativos"} · ${formatarMoedaPorCodigo(totalPos, moeda)}</span>
   </div></td>`;
@@ -284,7 +254,6 @@ function celulaGrupo(plataforma, qtd, totalPos, moeda) {
 function renderizarTabela() {
   const lista = listaParaTabela();
   corpoTabela.innerHTML = "";
-
   const agrupar = ordenacaoAtual.campo === "padrao";
   let plataformaAtual = null;
   const maxPeso = lista.reduce((m, a) => Math.max(m, a.peso), 0) || 1;
@@ -297,7 +266,6 @@ function renderizarTabela() {
       const moeda = doGrupo[0].pais === "Brasil" ? "BRL" : "USD";
       corpoTabela.appendChild(celulaGrupo(plataformaAtual, doGrupo.length, totalPos, moeda));
     }
-
     const tr = document.createElement("tr");
     tr.className = "dado";
     const classeRent = a.rentabilidade >= 0 ? "positiva" : "negativa";
@@ -317,20 +285,21 @@ function renderizarTabela() {
       <td class="num">${formatarMoeda(a.posicao, a)}</td>
       <td class="num rentabilidade ${classeRes}">${formatarMoeda(a.resultado, a)}</td>
       <td class="num rentabilidade ${classeRent}">${formatarPercentual(a.rentabilidade)}</td>
-      <td class="num celula-peso">
-        <span class="peso-valor">${formatarPercentual(a.peso)}</span>
-        <span class="peso-barra"><span style="width:${larguraPeso.toFixed(1)}%"></span></span>
-      </td>
+      <td class="num celula-peso"><span class="peso-valor">${formatarPercentual(a.peso)}</span>
+        <span class="peso-barra"><span style="width:${larguraPeso.toFixed(1)}%"></span></span></td>
       <td><span class="situacao ${a.situacao.classe}">${esc(a.situacao.texto)}</span></td>
-      <td class="observacao-tabela" title="${esc(a.observacao || "")}">${esc(a.observacao || "")}</td>`;
-
+      <td class="observacao-tabela" title="${esc(a.observacao || "")}">${esc(a.observacao || "")}</td>
+      <td class="col-acoes">
+        <button type="button" class="acao-linha" data-id="${a._id}" data-acao="editar">Editar</button>
+        <button type="button" class="acao-linha excluir" data-id="${a._id}" data-acao="excluir">Excluir</button>
+      </td>`;
     corpoTabela.appendChild(tr);
   });
 
   if (!lista.length) {
     const tr = document.createElement("tr");
     tr.className = "sem-dados";
-    tr.innerHTML = `<td colspan="13">Nenhum ativo com esses filtros. Use “Limpar filtros” para ver tudo.</td>`;
+    tr.innerHTML = `<td colspan="14">Nenhum ativo com esses filtros. Use “Limpar filtros” para ver tudo.</td>`;
     corpoTabela.appendChild(tr);
   }
 
@@ -346,20 +315,177 @@ function renderizarTabela() {
 }
 
 function atualizarData() {
-  ultimaAtualizacao.textContent = `Atualizado em ${new Date().toLocaleString("pt-BR")}`;
+  ultimaAtualizacao.textContent = `Carteira salva neste navegador • ${new Date().toLocaleString("pt-BR")}`;
 }
 
-function limparRespostaGoogle(texto) {
-  return texto.replace(/^.*google\.visualization\.Query\.setResponse\(/s, "").replace(/\);?\s*$/s, "");
+/* ---------- Persistência local ---------- */
+function normalizarLista(lista) {
+  let maxId = 0;
+  lista.forEach(a => { if (a._id && a._id > maxId) maxId = a._id; });
+  return lista.map(a => {
+    const item = { ...a };
+    if (!item._id) item._id = ++maxId;
+    if (item.nome === undefined || item.nome === null) item.nome = nomeAtivo(item);
+    return item;
+  });
 }
 
-function valorCelula(celula) {
-  if (!celula) return "";
-  if (celula.v !== undefined) return celula.v;
-  if (celula.f !== undefined) return celula.f;
-  return "";
+function salvarLocal() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(ativos)); } catch (e) { console.error(e); }
 }
 
+function carregarLocal() {
+  try {
+    const txt = localStorage.getItem(STORAGE_KEY);
+    if (!txt) return null;
+    const arr = JSON.parse(txt);
+    return Array.isArray(arr) && arr.length ? arr : null;
+  } catch (e) { return null; }
+}
+
+function inicializarDados() {
+  const local = carregarLocal();
+  if (local) {
+    ativos = normalizarLista(local);
+  } else {
+    ativos = normalizarLista(window.CARTEIRA_AZ || []);
+    salvarLocal();
+  }
+}
+
+function mensagem(texto, tipo) {
+  if (!mensagemAtualizacao) return;
+  mensagemAtualizacao.textContent = texto;
+  mensagemAtualizacao.className = "observacao" + (tipo === "sucesso" ? " mensagem-sucesso" : tipo === "erro" ? " mensagem-erro" : "");
+}
+
+/* ---------- Formulário (adicionar / editar) ---------- */
+function preencherPlataformasDatalist() {
+  if (!listaPlataformas) return;
+  const nomes = [...new Set(ativos.map(a => a.plataforma).filter(Boolean))].sort();
+  listaPlataformas.innerHTML = nomes.map(n => `<option value="${esc(n)}"></option>`).join("");
+}
+
+function abrirFormulario(asset) {
+  editandoId = asset ? asset._id : null;
+  tituloForm.textContent = asset ? "Editar ativo" : "Adicionar ativo";
+  formErro.hidden = true;
+  preencherPlataformasDatalist();
+
+  F.codigo.value = asset ? asset.codigo : "";
+  F.nome.value = asset ? (asset.nome || "") : "";
+  F.tipo.value = asset ? (asset.tipo || "Ação") : "Ação";
+  F.plataforma.value = asset ? asset.plataforma : "";
+  F.pais.value = asset ? (asset.pais || "EUA") : "EUA";
+  F.quantidade.value = asset ? asset.quantidade : "";
+  F.precoMedio.value = asset ? asset.precoMedio : "";
+  F.valorAtual.value = asset ? asset.valorAtual : "";
+  F.compra.value = asset ? asset.compra : "8";
+  F.venda.value = asset ? asset.venda : "22.5";
+  F.observacao.value = asset ? (asset.observacao || "") : "";
+
+  botaoExcluir.hidden = !asset;
+  modalAtivo.hidden = false;
+  F.codigo.focus();
+}
+
+function fecharFormulario() {
+  modalAtivo.hidden = true;
+  editandoId = null;
+}
+
+function salvarFormulario() {
+  const dados = {
+    codigo: F.codigo.value.trim().toUpperCase(),
+    nome: F.nome.value.trim(),
+    tipo: F.tipo.value,
+    plataforma: F.plataforma.value.trim(),
+    pais: F.pais.value,
+    quantidade: numero(F.quantidade.value),
+    precoMedio: numero(F.precoMedio.value),
+    valorAtual: numero(F.valorAtual.value),
+    compra: numero(F.compra.value),
+    venda: numero(F.venda.value),
+    observacao: F.observacao.value.trim()
+  };
+
+  if (!dados.codigo || !dados.plataforma || dados.precoMedio <= 0 || dados.valorAtual <= 0) {
+    formErro.textContent = "Preencha ao menos Código, Plataforma, Preço médio e Preço atual (maiores que zero).";
+    formErro.hidden = false;
+    return;
+  }
+
+  if (editandoId) {
+    const i = ativos.findIndex(a => a._id === editandoId);
+    if (i >= 0) ativos[i] = { ...ativos[i], ...dados };
+  } else {
+    const maxId = ativos.reduce((m, a) => Math.max(m, a._id || 0), 0);
+    ativos.push({ _id: maxId + 1, ...dados });
+  }
+
+  salvarLocal();
+  fecharFormulario();
+  renderizarTabela();
+  atualizarData();
+  mensagem(editandoId ? "Ativo atualizado." : "Ativo adicionado.", "sucesso");
+}
+
+function excluirAtivoAtual() {
+  if (!editandoId) return;
+  const alvo = ativos.find(a => a._id === editandoId);
+  const rotulo = alvo ? (alvo.nome || alvo.codigo) : "este ativo";
+  if (!confirm(`Remover ${rotulo} da carteira?`)) return;
+  ativos = ativos.filter(a => a._id !== editandoId);
+  salvarLocal();
+  fecharFormulario();
+  renderizarTabela();
+  atualizarData();
+  mensagem("Ativo removido.", "sucesso");
+}
+
+/* ---------- Modo edição ---------- */
+function alternarEdicao() {
+  modoEdicao = !modoEdicao;
+  document.body.classList.toggle("modo-edicao", modoEdicao);
+  botaoEditar.textContent = modoEdicao ? "Concluir edição" : "Editar carteira";
+  if (barraEdicao) barraEdicao.hidden = !modoEdicao;
+}
+
+/* ---------- Backup ---------- */
+function exportarBackup() {
+  const blob = new Blob([JSON.stringify(ativos, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `az-stocks-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  mensagem("Backup exportado.", "sucesso");
+}
+
+function importarBackup(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const arr = JSON.parse(reader.result);
+      if (!Array.isArray(arr) || !arr.length) throw new Error("vazio");
+      ativos = normalizarLista(arr);
+      salvarLocal();
+      renderizarTabela();
+      atualizarData();
+      mensagem(`Backup importado • ${ativos.length} ativos.`, "sucesso");
+    } catch (e) {
+      mensagem("Arquivo de backup inválido.", "erro");
+    }
+  };
+  reader.readAsText(file);
+}
+
+/* ---------- Importar da planilha (migração opcional) ---------- */
+function limparRespostaGoogle(t) { return t.replace(/^.*google\.visualization\.Query\.setResponse\(/s, "").replace(/\);?\s*$/s, ""); }
+function valorCelula(c) { if (!c) return ""; if (c.v !== undefined) return c.v; if (c.f !== undefined) return c.f; return ""; }
 function mapearLinhaGoogle(linha) {
   const c = linha.c || [];
   return {
@@ -376,94 +502,36 @@ function mapearLinhaGoogle(linha) {
   };
 }
 
-// Câmbio ao vivo da aba Cambio (1ª célula com número > 0). 0 se não achar.
-async function carregarCambio() {
+async function importarDaPlanilha() {
   const cfg = window.AZ_CONFIG || {};
-  if (!cfg.GOOGLE_SHEET_ID) return 0;
+  if (!cfg.GOOGLE_SHEET_ID) { mensagem("Planilha não configurada.", "erro"); return; }
+  if (!confirm("Isso substitui sua carteira local pelos dados atuais da planilha. Continuar?")) return;
 
-  const aba = cfg.CAMBIO_SHEET || "Cambio";
-  const url = `https://docs.google.com/spreadsheets/d/${cfg.GOOGLE_SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(aba)}`;
-  const resp = await fetch(url);
-  if (!resp.ok) throw new Error("Não consegui acessar a aba de câmbio.");
-
-  const json = JSON.parse(limparRespostaGoogle(await resp.text()));
-  const linhas = (json.table && json.table.rows) || [];
-  for (const linha of linhas) {
-    for (const celula of (linha.c || [])) {
-      const v = numero(valorCelula(celula));
-      if (v > 0) return v;
-    }
-  }
-  return 0;
-}
-
-async function carregarGoogleSheets() {
-  const cfg = window.AZ_CONFIG || {};
-  if (!cfg.GOOGLE_SHEET_ID) return false;
-
-  const url = `https://docs.google.com/spreadsheets/d/${cfg.GOOGLE_SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(cfg.SHEET_NAME || "Dados")}`;
-  const resp = await fetch(url);
-  if (!resp.ok) throw new Error("Não consegui acessar a planilha.");
-
-  const json = JSON.parse(limparRespostaGoogle(await resp.text()));
-  const novos = (json.table.rows || [])
-    .map(mapearLinhaGoogle)
-    .filter(a => a.codigo && a.plataforma && a.pais && a.tipo && a.precoMedio > 0 && a.valorAtual > 0);
-
-  if (!novos.length) throw new Error("A planilha não retornou ativos válidos.");
-  ativos = novos;
-  return true;
-}
-
-async function atualizarDados() {
-  botaoAtualizar.disabled = true;
-  botaoAtualizar.textContent = "Atualizando...";
-  mensagemAtualizacao.textContent = "Atualizando dados...";
-  mensagemAtualizacao.className = "observacao";
-
+  mensagem("Importando da planilha...", "");
   try {
-    try {
-      const c = await carregarCambio();
-      cambioVivo = c > 0 ? c : 0;
-    } catch (eCambio) {
-      cambioVivo = 0;
-    }
-
-    const ok = await carregarGoogleSheets();
-    dadosAoVivo = ok;
-    ordenacaoAtual = { campo: "padrao", direcao: "asc" };
+    const url = `https://docs.google.com/spreadsheets/d/${cfg.GOOGLE_SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(cfg.SHEET_NAME || "Dados")}`;
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error("http");
+    const json = JSON.parse(limparRespostaGoogle(await resp.text()));
+    const novos = (json.table.rows || []).map(mapearLinhaGoogle)
+      .filter(a => a.codigo && a.plataforma && a.pais && a.tipo && a.precoMedio > 0 && a.valorAtual > 0);
+    if (!novos.length) throw new Error("vazio");
+    ativos = normalizarLista(novos);
+    salvarLocal();
     renderizarTabela();
     atualizarData();
-
-    if (ok) {
-      mensagemAtualizacao.textContent = `Dados sincronizados com Google Sheets • ${ativos.length} ativos carregados`;
-      mensagemAtualizacao.className = "observacao mensagem-sucesso";
-    } else {
-      mensagemAtualizacao.textContent = "Google Sheets ainda não configurado. Usando carteira local.";
-      mensagemAtualizacao.className = "observacao";
-    }
+    mensagem(`Importado da planilha • ${ativos.length} ativos.`, "sucesso");
   } catch (e) {
-    console.error(e);
-    dadosAoVivo = false;
-    renderizarTabela();
-    atualizarData();
-    mensagemAtualizacao.textContent = "Não consegui ler o Google Sheets. Mantive a carteira local.";
-    mensagemAtualizacao.className = "observacao mensagem-erro";
+    mensagem("Não consegui ler a planilha (verifique se está pública).", "erro");
   }
-
-  botaoAtualizar.disabled = false;
-  botaoAtualizar.textContent = "Atualizar dados";
 }
 
-// Eventos
+/* ---------- Eventos ---------- */
 document.querySelectorAll(".ordenar-coluna").forEach(botao => {
   botao.addEventListener("click", () => {
     const campo = botao.dataset.sort;
-    if (ordenacaoAtual.campo === campo) {
-      ordenacaoAtual.direcao = ordenacaoAtual.direcao === "asc" ? "desc" : "asc";
-    } else {
-      ordenacaoAtual = { campo, direcao: "asc" };
-    }
+    if (ordenacaoAtual.campo === campo) ordenacaoAtual.direcao = ordenacaoAtual.direcao === "asc" ? "desc" : "asc";
+    else ordenacaoAtual = { campo, direcao: "asc" };
     renderizarTabela();
   });
 });
@@ -476,9 +544,18 @@ cartoesSituacao.forEach(card => {
   });
 });
 
+corpoTabela.addEventListener("click", e => {
+  const botao = e.target.closest(".acao-linha");
+  if (!botao) return;
+  const id = Number(botao.dataset.id);
+  const alvo = ativos.find(a => a._id === id);
+  if (!alvo) return;
+  if (botao.dataset.acao === "editar") abrirFormulario(alvo);
+  else { editandoId = id; excluirAtivoAtual(); }
+});
+
 filtroPlataforma.addEventListener("change", renderizarTabela);
 filtroTipo.addEventListener("change", renderizarTabela);
-botaoAtualizar.addEventListener("click", atualizarDados);
 botaoLimpar?.addEventListener("click", () => {
   situacaoSelecionada = "Todas";
   filtroPlataforma.value = "Todas";
@@ -486,6 +563,18 @@ botaoLimpar?.addEventListener("click", () => {
   renderizarTabela();
 });
 
+botaoEditar?.addEventListener("click", alternarEdicao);
+botaoAdicionar?.addEventListener("click", () => abrirFormulario(null));
+botaoSalvar?.addEventListener("click", salvarFormulario);
+botaoCancelar?.addEventListener("click", fecharFormulario);
+botaoExcluir?.addEventListener("click", excluirAtivoAtual);
+modalAtivo?.addEventListener("click", e => { if (e.target === modalAtivo) fecharFormulario(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !modalAtivo.hidden) fecharFormulario(); });
+
+botaoExportar?.addEventListener("click", exportarBackup);
+inputImportar?.addEventListener("change", e => { if (e.target.files[0]) { importarBackup(e.target.files[0]); e.target.value = ""; } });
+botaoImportarPlanilha?.addEventListener("click", importarDaPlanilha);
+
+inicializarDados();
 renderizarTabela();
 atualizarData();
-atualizarDados();

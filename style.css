@@ -585,3 +585,144 @@ tr.sem-dados td {
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
 }
+
+/* ===== v18: edição no site ===== */
+.badge-origem.salvo { color: #166534; background: #dcfce7; border-color: rgba(22, 101, 52, 0.18); }
+
+.barra-edicao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 8px 4px 12px;
+  margin-bottom: 4px;
+  border-bottom: 1px dashed rgba(234, 88, 12, 0.25);
+}
+.edicao-secundario { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.botao-suave {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 12px;
+  background: #fff;
+  color: #9a3412;
+  border: 1px solid rgba(234, 88, 12, 0.28);
+  font-weight: 700;
+  font-size: 13px;
+  font-family: var(--fonte-ui);
+  cursor: pointer;
+  box-shadow: none;
+}
+.botao-suave:hover { background: #fff7ed; transform: none; box-shadow: none; filter: none; }
+
+.botao-perigo {
+  background: #fff;
+  color: #b91c1c;
+  border: 1px solid rgba(185, 28, 28, 0.3);
+  box-shadow: none;
+}
+.botao-perigo:hover { background: #fef2f2; transform: none; box-shadow: none; filter: none; }
+
+/* Coluna de ações só aparece no modo edição */
+.col-acoes { display: none; white-space: nowrap; }
+body.modo-edicao .col-acoes { display: table-cell; }
+
+.acao-linha {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: none;
+  margin-right: 4px;
+}
+.acao-linha:hover { background: #e2e8f0; transform: none; box-shadow: none; filter: none; }
+.acao-linha.excluir { color: #b91c1c; border-color: rgba(185, 28, 28, 0.25); background: #fef2f2; }
+.acao-linha.excluir:hover { background: #fee2e2; }
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 50;
+}
+.modal-overlay[hidden] { display: none; }
+
+.modal-card {
+  width: min(620px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 22px;
+  padding: 24px;
+  box-shadow: 0 30px 70px rgba(15, 23, 42, 0.3);
+}
+.modal-card h2 { font-family: var(--fonte-display); font-size: 22px; font-weight: 700; margin-bottom: 18px; letter-spacing: -0.02em; }
+
+.form-grade {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 14px;
+}
+.form-grade label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--texto-suave);
+  text-transform: none;
+  letter-spacing: 0;
+}
+.form-grade .campo-largo { grid-column: 1 / -1; }
+.form-grade input, .form-grade select {
+  height: 42px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  border-radius: 11px;
+  padding: 0 12px;
+  font-size: 14px;
+  font-family: var(--fonte-ui);
+  font-weight: 600;
+  color: var(--texto);
+  background: #fff;
+  outline: none;
+}
+.form-grade input:focus, .form-grade select:focus {
+  border-color: rgba(234, 88, 12, 0.55);
+  box-shadow: 0 0 0 4px rgba(234, 88, 12, 0.08);
+}
+
+.form-erro {
+  margin-top: 14px;
+  color: #b91c1c;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.form-acoes {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 20px;
+}
+.form-acoes-dir { display: flex; gap: 10px; }
+
+@media (max-width: 560px) {
+  .form-grade { grid-template-columns: 1fr; }
+  .barra-edicao { flex-direction: column; align-items: stretch; }
+  .edicao-secundario { justify-content: stretch; }
+  .edicao-secundario > * { flex: 1; }
+}

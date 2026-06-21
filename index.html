@@ -22,9 +22,8 @@
       </div>
 
       <div class="acoes-topo">
-        <span id="badgeOrigem" class="badge-origem carregando">Carregando dados…</span>
-        <a class="botao-secundario" href="https://docs.google.com/spreadsheets/d/1Jfu04erEfI7nfAIW6bhItWt7qYbWsqztsffF3tbv0wE/edit?gid=33218330#gid=33218330" target="_blank" rel="noopener noreferrer">Editar carteira</a>
-        <button id="botaoAtualizar">Atualizar dados</button>
+        <span id="badgeOrigem" class="badge-origem salvo">Salvo neste navegador</span>
+        <button id="botaoEditar">Editar carteira</button>
       </div>
     </header>
 
@@ -113,6 +112,16 @@
     </section>
 
     <section class="painel">
+      <div class="barra-edicao" id="barraEdicao" hidden>
+        <button type="button" id="botaoAdicionar">+ Adicionar ativo</button>
+        <div class="edicao-secundario">
+          <button type="button" class="botao-suave" id="botaoExportar">Exportar backup</button>
+          <label class="botao-suave" for="inputImportar">Importar backup</label>
+          <input type="file" id="inputImportar" accept="application/json" hidden />
+          <button type="button" class="botao-suave" id="botaoImportarPlanilha">Importar da planilha</button>
+        </div>
+      </div>
+
       <div class="barra-filtros">
         <div>
           <label for="filtroPlataforma">Plataforma</label>
@@ -156,6 +165,7 @@
               <th class="num"><button class="ordenar-coluna" data-sort="peso">Peso</button></th>
               <th><button class="ordenar-coluna" data-sort="situacao">Situação</button></th>
               <th><button class="ordenar-coluna" data-sort="observacao">Observação</button></th>
+              <th class="col-acoes">Ações</th>
             </tr>
           </thead>
           <tbody id="corpoTabela"></tbody>
@@ -165,9 +175,47 @@
 
     <footer class="rodape">
       <span id="ultimaAtualizacao">Atualizado agora</span>
-      <p class="observacao" id="mensagemAtualizacao">Versão v16: tipografia financeira, cards de situação clicáveis e tabela agrupada por corretora.</p>
+      <p class="observacao" id="mensagemAtualizacao">Versão v18: edição direta no site, salva neste navegador.</p>
     </footer>
   </main>
+
+  <div class="modal-overlay" id="modalAtivo" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="tituloForm">
+      <h2 id="tituloForm">Adicionar ativo</h2>
+      <div class="form-grade">
+        <label>Código<input id="f_codigo" type="text" placeholder="Ex.: MSFT" /></label>
+        <label>Nome<input id="f_nome" type="text" placeholder="Ex.: Microsoft" /></label>
+        <label>Tipo
+          <select id="f_tipo">
+            <option value="Ação">Ação</option>
+            <option value="ETF">ETF</option>
+          </select>
+        </label>
+        <label>Plataforma<input id="f_plataforma" type="text" list="lista_plataformas" placeholder="Ex.: Nomad" /></label>
+        <label>País
+          <select id="f_pais">
+            <option value="EUA">EUA</option>
+            <option value="Brasil">Brasil</option>
+          </select>
+        </label>
+        <label>Quantidade<input id="f_quantidade" type="text" inputmode="decimal" placeholder="Ex.: 1,5" /></label>
+        <label>Preço médio<input id="f_precoMedio" type="text" inputmode="decimal" placeholder="Ex.: 250,00" /></label>
+        <label>Preço atual<input id="f_valorAtual" type="text" inputmode="decimal" placeholder="Ex.: 291,51" /></label>
+        <label>Gatilho compra (%)<input id="f_compra" type="text" inputmode="decimal" placeholder="8" /></label>
+        <label>Gatilho venda (%)<input id="f_venda" type="text" inputmode="decimal" placeholder="22,5" /></label>
+        <label class="campo-largo">Observação<input id="f_observacao" type="text" placeholder="Ex.: Big tech / longo prazo" /></label>
+      </div>
+      <datalist id="lista_plataformas"></datalist>
+      <p class="form-erro" id="formErro" hidden></p>
+      <div class="form-acoes">
+        <button type="button" class="botao-perigo" id="botaoExcluir" hidden>Excluir</button>
+        <span class="form-acoes-dir">
+          <button type="button" class="botao-suave" id="botaoCancelar">Cancelar</button>
+          <button type="button" id="botaoSalvar">Salvar</button>
+        </span>
+      </div>
+    </div>
+  </div>
 
   <script src="config.js"></script>
   <script src="carteira.js"></script>
