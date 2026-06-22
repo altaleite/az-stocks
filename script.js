@@ -1,4 +1,5 @@
 let ativos = [];
+const VERSAO = "19b";
 let situacaoSelecionada = "Todas";
 let modoEdicao = false;
 let editandoId = null;
@@ -632,4 +633,9 @@ botaoAtualizarPrecos?.addEventListener("click", atualizarPrecos);
 inicializarDados();
 renderizarTabela();
 atualizarData();
+console.log("AZ Stocks — código v" + VERSAO + " carregado");
+if (mensagemAtualizacao) {
+  mensagemAtualizacao.textContent = `Pronto • código v${VERSAO}`;
+  mensagemAtualizacao.className = "observacao";
+}
 atualizarPrecos(true); // tenta atualizar preços ao abrir, sem incomodar se falhar
