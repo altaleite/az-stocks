@@ -726,3 +726,7 @@ body.modo-edicao .col-acoes { display: table-cell; }
   .edicao-secundario { justify-content: stretch; }
   .edicao-secundario > * { flex: 1; }
 }
+
+.status-precos { align-self: center; font-size: 12.5px; font-weight: 700; }
+.status-precos.ok { color: #166534; }
+.status-precos.erro { color: #b91c1c; }

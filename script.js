@@ -22,6 +22,14 @@ const botaoAdicionar = document.getElementById("botaoAdicionar");
 const botaoExportar = document.getElementById("botaoExportar");
 const inputImportar = document.getElementById("inputImportar");
 const botaoAtualizarPrecos = document.getElementById("botaoAtualizarPrecos");
+const statusPrecos = document.getElementById("statusPrecos");
+
+function mostrarStatusPrecos(texto, tipo) {
+  if (!statusPrecos) return;
+  statusPrecos.textContent = texto;
+  statusPrecos.className = "status-precos " + (tipo || "");
+  statusPrecos.hidden = false;
+}
 
 // Modal
 const modalAtivo = document.getElementById("modalAtivo");
@@ -532,6 +540,7 @@ async function atualizarPrecos(silencioso = false) {
   if (botaoAtualizarPrecos && !silencioso) {
     botaoAtualizarPrecos.disabled = true;
     botaoAtualizarPrecos.textContent = "Atualizando...";
+    mostrarStatusPrecos("Buscando preços...", "");
     mensagem("Buscando preços na planilha...", "");
   }
 
@@ -550,14 +559,19 @@ async function atualizarPrecos(silencioso = false) {
     renderizarTabela();
     atualizarData();
 
+    const faltando = [...new Set(naoEncontrados)];
     if (!silencioso) {
-      const faltando = [...new Set(naoEncontrados)];
       let msg = `Preços atualizados • ${atualizados} ${atualizados === 1 ? "ativo" : "ativos"}.`;
       if (faltando.length) msg += ` Sem preço na planilha: ${faltando.join(", ")}.`;
       mensagem(msg, faltando.length ? "" : "sucesso");
+      mostrarStatusPrecos(`✓ ${atualizados} atualizados`, "ok");
     }
   } catch (e) {
-    if (!silencioso) mensagem("Não consegui ler os preços da planilha (verifique se ela está pública).", "erro");
+    console.error("Atualizar preços — falha:", e);
+    if (!silencioso) {
+      mensagem("Não consegui ler os preços. Veja se a planilha está pública (qualquer pessoa com o link pode ver).", "erro");
+      mostrarStatusPrecos("Erro ao ler a planilha", "erro");
+    }
   }
 
   if (botaoAtualizarPrecos && !silencioso) {
