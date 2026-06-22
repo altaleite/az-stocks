@@ -1,5 +1,5 @@
 let ativos = [];
-const VERSAO = "19c";
+const VERSAO = "19d";
 let situacaoSelecionada = "Todas";
 let modoEdicao = false;
 let editandoId = null;
@@ -560,12 +560,16 @@ async function atualizarPrecos(silencioso = false) {
     renderizarTabela();
     atualizarData();
 
+    const hora = new Date().toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
     const faltando = [...new Set(naoEncontrados)];
+
+    // Sempre mostra (inclusive na atualização automática ao abrir) e fica fixo na tela.
+    mostrarStatusPrecos(`Preços atualizados em ${hora}`, "ok");
+
     if (!silencioso) {
-      let msg = `Preços atualizados • ${atualizados} ${atualizados === 1 ? "ativo" : "ativos"}.`;
+      let msg = `Preços atualizados • ${atualizados} ${atualizados === 1 ? "ativo" : "ativos"} em ${hora}.`;
       if (faltando.length) msg += ` Sem preço na planilha: ${faltando.join(", ")}.`;
       mensagem(msg, faltando.length ? "" : "sucesso");
-      mostrarStatusPrecos(`✓ ${atualizados} preços atualizados${faltando.length ? " · " + faltando.length + " sem preço" : ""}`, "ok");
       finalizarBotao("✓ Atualizado");
     }
   } catch (e) {
