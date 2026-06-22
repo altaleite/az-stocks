@@ -1,5 +1,5 @@
 let ativos = [];
-const VERSAO = "19b";
+const VERSAO = "19c";
 let situacaoSelecionada = "Todas";
 let modoEdicao = false;
 let editandoId = null;
@@ -565,20 +565,24 @@ async function atualizarPrecos(silencioso = false) {
       let msg = `Preços atualizados • ${atualizados} ${atualizados === 1 ? "ativo" : "ativos"}.`;
       if (faltando.length) msg += ` Sem preço na planilha: ${faltando.join(", ")}.`;
       mensagem(msg, faltando.length ? "" : "sucesso");
-      mostrarStatusPrecos(`✓ ${atualizados} atualizados`, "ok");
+      mostrarStatusPrecos(`✓ ${atualizados} preços atualizados${faltando.length ? " · " + faltando.length + " sem preço" : ""}`, "ok");
+      finalizarBotao("✓ Atualizado");
     }
   } catch (e) {
     console.error("Atualizar preços — falha:", e);
     if (!silencioso) {
       mensagem("Não consegui ler os preços. Veja se a planilha está pública (qualquer pessoa com o link pode ver).", "erro");
       mostrarStatusPrecos("Erro ao ler a planilha", "erro");
+      finalizarBotao("Tentar de novo");
     }
   }
+}
 
-  if (botaoAtualizarPrecos && !silencioso) {
-    botaoAtualizarPrecos.disabled = false;
-    botaoAtualizarPrecos.textContent = "Atualizar preços";
-  }
+function finalizarBotao(textoTemporario) {
+  if (!botaoAtualizarPrecos) return;
+  botaoAtualizarPrecos.disabled = false;
+  botaoAtualizarPrecos.textContent = textoTemporario;
+  setTimeout(() => { botaoAtualizarPrecos.textContent = "Atualizar preços"; }, 3000);
 }
 
 /* ---------- Eventos ---------- */
